@@ -1,0 +1,16 @@
+using Microsoft.AspNetCore.Identity;
+
+namespace Minimal.Fitness.Models;
+
+public class WorkoutPlan
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public string? CreatedByUserId { get; set; }
+    public bool IsSeeded { get; set; }
+
+    public IdentityUser? CreatedByUser { get; set; }
+    public ICollection<WorkoutPlanExercise> Exercises { get; set; } = [];
+    public ICollection<WorkoutSession> Sessions { get; set; } = [];
+}

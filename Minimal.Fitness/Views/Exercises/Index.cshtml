@@ -1,0 +1,67 @@
+@model IEnumerable<Minimal.Fitness.Models.Exercise>
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = "Exercises";
+    var current = ViewBag.MuscleGroup as MuscleGroup?;
+}
+
+<h2>Exercise Library</h2>
+
+<div class="mb-3">
+    <a href="@Url.Action("Index")" class="btn btn-sm @(current is null ? "btn-primary" : "btn-outline-primary")">All</a>
+    @foreach (var mg in Enum.GetValues<MuscleGroup>())
+    {
+        <a href="@Url.Action("Index", new { muscleGroup = mg })"
+           class="btn btn-sm @(current == mg ? "btn-primary" : "btn-outline-primary") mt-1">@mg</a>
+    }
+</div>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+    @foreach (var exercise in Model)
+    {
+        <div class="col">
+            <a href="@Url.Action("Details", new { id = exercise.Id })" class="text-decoration-none">
+                <div class="card h-100 exercise-card">
+                    <div class="card-body text-center">
+                        @if (exercise.AnimationPath is not null)
+                        {
+                            <dotlottie-player src="~/animations/@exercise.AnimationPath" autoplay loop
+                                style="height:120px;width:120px;margin:0 auto;"></dotlottie-player>
+                        }
+                        else
+                        {
+                            <div class="exercise-placeholder">@GetMuscleEmoji(exercise.MuscleGroup)</div>
+                        }
+                        <h5 class="card-title mt-2">@exercise.Name</h5>
+                        <div>
+                            <span class="badge bg-secondary">@exercise.MuscleGroup</span>
+                            <span class="badge @(exercise.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
+                                @(exercise.TrackingType == TrackingType.Timer ? "⏱ Timer" : "🔁 Reps")
+                            </span>
+                        </div>
+                        @if (exercise.Equipment is not null)
+                        {
+                            <small class="text-muted">@exercise.Equipment</small>
+                        }
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+@functions {
+    static string GetMuscleEmoji(MuscleGroup mg) => mg switch
+    {
+        MuscleGroup.Chest => "🫁",
+        MuscleGroup.Back => "🔙",
+        MuscleGroup.Shoulders => "💪",
+        MuscleGroup.Biceps => "💪",
+        MuscleGroup.Triceps => "💪",
+        MuscleGroup.Legs => "🦵",
+        MuscleGroup.Core => "🎯",
+        MuscleGroup.Glutes => "🍑",
+        MuscleGroup.FullBody => "🏋️",
+        _ => "🏋️"
+    };
+}

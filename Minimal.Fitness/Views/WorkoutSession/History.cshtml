@@ -1,0 +1,103 @@
+@model IEnumerable<Minimal.Fitness.Models.WorkoutSession>
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = "Workout History";
+}
+
+<h2>Workout History</h2>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <p class="text-muted">No workouts yet. Start one from the <a asp-controller="WorkoutPlans" asp-action="Index">Plans</a> page!</p>
+    </div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var session in Model)
+        {
+            var duration = session.CompletedAtUtc.HasValue
+                ? session.CompletedAtUtc.Value - session.StartedAtUtc
+                : DateTime.UtcNow - session.StartedAtUtc;
+
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">@session.WorkoutPlan.Name</h5>
+                        <small class="text-muted">@session.StartedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</small>
+                        <span class="ms-2 text-muted">@((int)duration.TotalMinutes) min</span>
+                        @if (!session.CompletedAtUtc.HasValue)
+                        {
+                            <span class="badge bg-warning ms-2">In Progress</span>
+                        }
+                    </div>
+                    <div class="d-flex gap-1">
+                        @foreach (var ex in session.Exercises.OrderBy(e => e.SortOrder))
+                        {
+                            if (ex.Difficulty.HasValue)
+                            {
+                                var color = ex.Difficulty.Value switch
+                                {
+                                    Difficulty.TooEasy => "#22c55e",
+                                    Difficulty.GotIt => "#3b82f6",
+                                    Difficulty.Struggled => "#eab308",
+                                    _ => "#9ca3af"
+                                };
+                                <span title="@ex.Exercise.Name: @ex.Difficulty" style="color:@color; font-size:1.2rem;">●</span>
+                            }
+                            else
+                            {
+                                <span title="@ex.Exercise.Name: not rated" style="color:#d1d5db; font-size:1.2rem;">●</span>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <!-- Expandable detail -->
+                <div class="collapse mt-2" id="session-@session.Id">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Exercise</th><th>Sets</th><th>Detail</th><th>Rating</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ex in session.Exercises.OrderBy(e => e.SortOrder))
+                            {
+                                <tr>
+                                    <td>@ex.Exercise.Name</td>
+                                    <td>@ex.Sets.Count</td>
+                                    <td>
+                                        @foreach (var set in ex.Sets.OrderBy(s => s.SetNumber))
+                                        {
+                                            if (set.DurationSeconds.HasValue)
+                                            {
+                                                <span class="badge bg-light text-dark">@(set.DurationSeconds)s</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-dark">@(set.Reps)×@(set.Weight ?? 0)lb</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ex.Difficulty.HasValue)
+                                        {
+                                            @(ex.Difficulty.Value switch
+                                            {
+                                                Difficulty.TooEasy => "🟢 Too Easy",
+                                                Difficulty.GotIt => "🔵 Got It",
+                                                Difficulty.Struggled => "🟡 Struggled",
+                                                _ => "—"
+                                            })
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <a class="btn btn-sm btn-link p-0 mt-1" data-bs-toggle="collapse" href="#session-@session.Id">Details</a>
+            </div>
+        }
+    </div>
+}

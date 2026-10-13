@@ -1,0 +1,52 @@
+@model Minimal.Fitness.Models.Exercise
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Exercises</a></li>
+        <li class="breadcrumb-item active">@Model.Name</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-6 text-center">
+        @if (Model.AnimationPath is not null)
+        {
+            <dotlottie-player src="~/animations/@Model.AnimationPath" autoplay loop
+                style="height:240px;width:240px;margin:0 auto;"></dotlottie-player>
+        }
+        else
+        {
+            <div class="exercise-placeholder display-1">
+                @(Model.MuscleGroup switch
+                {
+                    MuscleGroup.Chest => "🫁",
+                    MuscleGroup.Legs => "🦵",
+                    MuscleGroup.Core => "🎯",
+                    MuscleGroup.Glutes => "🍑",
+                    _ => "💪"
+                })
+            </div>
+        }
+    </div>
+    <div class="col-md-6">
+        <h2>@Model.Name</h2>
+        <p>
+            <span class="badge bg-secondary">@Model.MuscleGroup</span>
+            <span class="badge @(Model.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
+                @(Model.TrackingType == TrackingType.Timer ? "⏱ Timer" : "🔁 Reps")
+            </span>
+        </p>
+        @if (Model.Equipment is not null)
+        {
+            <p><strong>Equipment:</strong> @Model.Equipment</p>
+        }
+        @if (Model.Description is not null)
+        {
+            <p>@Model.Description</p>
+        }
+    </div>
+</div>

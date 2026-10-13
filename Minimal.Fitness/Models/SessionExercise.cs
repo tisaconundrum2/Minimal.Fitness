@@ -1,0 +1,17 @@
+using Minimal.Fitness.Models.Enums;
+
+namespace Minimal.Fitness.Models;
+
+public class SessionExercise
+{
+    public int Id { get; set; }
+    public int WorkoutSessionId { get; set; }
+    public int ExerciseId { get; set; }
+    public int SortOrder { get; set; }
+    public Difficulty? Difficulty { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
+
+    public WorkoutSession WorkoutSession { get; set; } = null!;
+    public Exercise Exercise { get; set; } = null!;
+    public ICollection<ExerciseSet> Sets { get; set; } = [];
+}

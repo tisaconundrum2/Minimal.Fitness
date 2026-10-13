@@ -1,0 +1,51 @@
+@model IEnumerable<Minimal.Fitness.Models.WorkoutPlan>
+@{
+    ViewData["Title"] = "Workout Plans";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Workout Plans</h2>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <a asp-action="Create" class="btn btn-primary">+ New Plan</a>
+    }
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 g-3">
+    @foreach (var plan in Model)
+    {
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title">@plan.Name</h5>
+                        @if (plan.IsSeeded)
+                        {
+                            <span class="badge bg-info">Starter</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">Custom</span>
+                        }
+                    </div>
+                    @if (plan.Description is not null)
+                    {
+                        <p class="card-text text-muted">@plan.Description</p>
+                    }
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <a asp-action="Details" asp-route-id="@plan.Id" class="btn btn-outline-primary btn-sm flex-fill">View</a>
+                    @if (!plan.IsSeeded && User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-action="Edit" asp-route-id="@plan.Id" class="btn btn-outline-secondary btn-sm">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@plan.Id" method="post"
+                              onsubmit="return confirm('Delete this plan?');" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

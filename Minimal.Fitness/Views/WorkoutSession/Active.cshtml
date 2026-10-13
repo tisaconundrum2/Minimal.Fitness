@@ -1,0 +1,134 @@
+@model Minimal.Fitness.Models.WorkoutSession
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = "Workout";
+    Layout = "_Layout";
+    var planExercises = (List<Minimal.Fitness.Models.WorkoutPlanExercise>)ViewBag.PlanExercises;
+    int restSeconds = ViewBag.RestSeconds;
+}
+
+<div id="workout-app" data-rest-seconds="@restSeconds">
+    <!-- Progress bar -->
+    <div class="workout-progress mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="text-muted" id="progress-label">Exercise 1 of @Model.Exercises.Count</small>
+            <small class="text-muted" id="progress-pct"></small>
+        </div>
+        <div class="progress" style="height: 8px;">
+            <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="d-flex gap-1 mt-1" id="difficulty-dots"></div>
+    </div>
+
+    <!-- Exercise display -->
+    <div id="exercise-area" class="text-center">
+        <div id="section-label" class="text-muted small text-uppercase"></div>
+        <div id="animation-area" class="my-2"></div>
+        <h3 id="exercise-name"></h3>
+        <div id="set-label" class="fs-5 mb-3"></div>
+
+        <!-- Reps mode -->
+        <div id="reps-input" class="d-none">
+            <div class="row g-2 justify-content-center mb-3">
+                <div class="col-auto">
+                    <label class="form-label small">Reps</label>
+                    <input type="number" id="input-reps" class="form-control form-control-lg text-center" style="width:100px" />
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small">Weight (lbs)</label>
+                    <input type="number" id="input-weight" class="form-control form-control-lg text-center" style="width:100px" step="0.5" />
+                </div>
+            </div>
+            <button id="btn-complete-set" class="btn btn-success btn-lg w-100 workout-btn" onclick="completeSet()">
+                ✓ Done
+            </button>
+        </div>
+
+        <!-- Timer mode -->
+        <div id="timer-input" class="d-none">
+            <div id="timer-display" class="display-1 fw-bold my-3">0:00</div>
+            <div class="d-flex gap-2 justify-content-center">
+                <button id="btn-timer-start" class="btn btn-success btn-lg workout-btn" onclick="startTimer()">▶ Start</button>
+                <button id="btn-timer-stop" class="btn btn-warning btn-lg workout-btn d-none" onclick="stopTimer()">⏸ Pause</button>
+                <button id="btn-timer-done" class="btn btn-primary btn-lg workout-btn d-none" onclick="finishTimerSet()">✓ Done</button>
+            </div>
+        </div>
+
+        <!-- Difficulty rating (after all sets) -->
+        <div id="difficulty-prompt" class="d-none">
+            <p class="fs-5 mt-3">How did that feel?</p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-lg flex-fill workout-btn difficulty-btn difficulty-easy" onclick="rateExercise('TooEasy')">
+                    🟢 Too Easy
+                </button>
+                <button class="btn btn-lg flex-fill workout-btn difficulty-btn difficulty-gotit" onclick="rateExercise('GotIt')">
+                    🔵 Got It
+                </button>
+                <button class="btn btn-lg flex-fill workout-btn difficulty-btn difficulty-struggled" onclick="rateExercise('Struggled')">
+                    🟡 Struggled
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest timer overlay -->
+    <div id="rest-overlay" class="d-none">
+        <div class="rest-timer-content text-center">
+            <h4>Rest</h4>
+            <div class="rest-timer-ring">
+                <svg viewBox="0 0 120 120" width="200" height="200">
+                    <circle cx="60" cy="60" r="54" fill="none" stroke="#e9ecef" stroke-width="8" />
+                    <circle id="rest-ring" cx="60" cy="60" r="54" fill="none" stroke="#0d6efd" stroke-width="8"
+                            stroke-dasharray="339.29" stroke-dashoffset="0" stroke-linecap="round"
+                            transform="rotate(-90 60 60)" />
+                </svg>
+                <div id="rest-seconds" class="rest-timer-text">0</div>
+            </div>
+            <button class="btn btn-outline-light btn-lg mt-3 workout-btn" onclick="skipRest()">Skip Rest →</button>
+        </div>
+    </div>
+
+    <!-- Workout complete -->
+    <div id="complete-area" class="d-none text-center py-5">
+        <h2>🎉 Workout Complete!</h2>
+        <p class="text-muted">Great job finishing @Model.WorkoutPlan.Name</p>
+        <form asp-action="Complete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary btn-lg workout-btn">Save & View History</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const sessionExercises = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.Exercises.OrderBy(e => e.SortOrder).Select(se => new
+        {
+            id = se.Id,
+            exerciseId = se.ExerciseId,
+            name = se.Exercise.Name,
+            animationPath = se.Exercise.AnimationPath,
+            trackingType = se.Exercise.TrackingType.ToString(),
+            muscleGroup = se.Exercise.MuscleGroup.ToString(),
+            setsCompleted = se.Sets.Count,
+        })
+    ));
+
+    const planExercises = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        planExercises.Select(pe => new
+        {
+            exerciseId = pe.ExerciseId,
+            section = pe.Section,
+            defaultSets = pe.DefaultSets,
+            defaultReps = pe.DefaultReps,
+            defaultWeight = pe.DefaultWeight,
+            defaultDurationSeconds = pe.DefaultDurationSeconds,
+        })
+    ));
+
+    const restSeconds = @restSeconds;
+    const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+</script>
+<script src="~/js/workout.js" asp-append-version="true"></script>
+}
