@@ -17,9 +17,9 @@
     <p class="text-muted">@Model.Description</p>
 }
 
-@foreach (var section in Model.Exercises.GroupBy(e => e.Section))
+@foreach (var grp in Model.Exercises.GroupBy(e => e.Section))
 {
-    <h4 class="mt-4 mb-2">@section.Key</h4>
+    <h4 class="mt-4 mb-2">@grp.Key</h4>
     <div class="table-responsive">
         <table class="table table-hover">
             <thead>
@@ -31,7 +31,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var pe in section.OrderBy(e => e.SortOrder))
+                @foreach (var pe in grp.OrderBy(e => e.SortOrder))
                 {
                     <tr>
                         <td>

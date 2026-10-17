@@ -29,3 +29,74 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* Workout UI */
+.workout-btn {
+  min-height: 48px;
+  font-size: 1.1rem;
+}
+
+.exercise-card {
+  transition: box-shadow 0.15s;
+}
+.exercise-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.exercise-placeholder {
+  font-size: 3rem;
+  line-height: 1;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Difficulty buttons */
+.difficulty-btn {
+  min-height: 56px;
+  font-weight: 600;
+}
+.difficulty-easy { background: #22c55e; color: #fff; border: none; }
+.difficulty-easy:hover { background: #16a34a; color: #fff; }
+.difficulty-gotit { background: #3b82f6; color: #fff; border: none; }
+.difficulty-gotit:hover { background: #2563eb; color: #fff; }
+.difficulty-struggled { background: #eab308; color: #fff; border: none; }
+.difficulty-struggled:hover { background: #ca8a04; color: #fff; }
+
+/* Rest timer overlay */
+#rest-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rest-timer-content {
+  color: #fff;
+}
+.rest-timer-ring {
+  position: relative;
+  display: inline-block;
+}
+.rest-timer-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Mobile-first workout layout */
+@media (max-width: 575.98px) {
+  .container { padding-left: 12px; padding-right: 12px; }
+  .workout-btn { width: 100%; }
+  .difficulty-btn { font-size: 0.95rem; min-height: 52px; }
+  #exercise-area h3 { font-size: 1.5rem; }
+  .rest-timer-text { font-size: 2.5rem; }
+}
