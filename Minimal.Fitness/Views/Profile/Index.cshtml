@@ -6,49 +6,26 @@
 
 <h2>Profile</h2>
 
-@if (TempData["Message"] is string message)
+@if (TempData["Message"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show">
-        @message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <div class="alert alert-success">@TempData["Message"]</div>
 }
 
-<form asp-action="Index" method="post" style="max-width: 400px;">
-    @Html.AntiForgeryToken()
-
+<form asp-action="Update" method="post" class="col-md-6">
     <div class="mb-3">
         <label class="form-label">Gender</label>
-        <select name="gender" class="form-select" id="gender-select">
-            @foreach (var g in Enum.GetValues<Gender>())
+        <select name="gender" class="form-select">
+            @foreach (Gender g in Enum.GetValues<Gender>())
             {
                 <option value="@g" selected="@(Model.Gender == g)">@g</option>
             }
         </select>
-        <small class="text-muted">Affects default rest timer duration</small>
     </div>
-
     <div class="mb-3">
-        <label class="form-label">Default Rest Time: <strong id="rest-display">@Model.DefaultRestSeconds</strong>s</label>
-        <input type="range" name="defaultRestSeconds" class="form-range" min="15" max="180" step="5"
-               value="@Model.DefaultRestSeconds" id="rest-slider"
-               oninput="document.getElementById('rest-display').textContent = this.value" />
-        <div class="d-flex justify-content-between">
-            <small class="text-muted">15s</small>
-            <small class="text-muted">180s</small>
-        </div>
+        <label class="form-label">Default Rest Time: <span id="rest-display">@Model.DefaultRestSeconds</span>s</label>
+        <input type="range" name="defaultRestSeconds" class="form-range"
+               min="15" max="180" step="5" value="@Model.DefaultRestSeconds"
+               oninput="document.getElementById('rest-display').textContent=this.value" />
     </div>
-
-    <button type="submit" class="btn btn-primary">Save Profile</button>
+    <button type="submit" class="btn btn-primary">Save</button>
 </form>
-
-@section Scripts {
-<script>
-    document.getElementById('gender-select').addEventListener('change', function () {
-        const defaults = { Male: 75, Female: 45, Other: 60 };
-        const slider = document.getElementById('rest-slider');
-        slider.value = defaults[this.value] || 60;
-        document.getElementById('rest-display').textContent = slider.value;
-    });
-</script>
-}
