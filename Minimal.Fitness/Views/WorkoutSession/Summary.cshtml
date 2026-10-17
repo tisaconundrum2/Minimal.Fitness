@@ -1,0 +1,52 @@
+@model Minimal.Fitness.Models.WorkoutSession
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = "Workout Complete";
+    var duration = (Model.CompletedAtUtc ?? DateTime.UtcNow) - Model.StartedAtUtc;
+}
+
+<div class="text-center py-4">
+    <h2>Workout Complete! 💪</h2>
+    <p class="text-muted">@Model.WorkoutPlan.Name &mdash; @duration.TotalMinutes.ToString("F0") min</p>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Exercise</th>
+            <th>Sets</th>
+            <th>Feeling</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var se in Model.Exercises)
+        {
+            <tr>
+                <td>@se.Exercise.Name</td>
+                <td>@se.Sets.Count</td>
+                <td>
+                    @switch (se.Difficulty)
+                    {
+                        case Difficulty.TooEasy:
+                            <span class="badge" style="background:#b0efb9;color:#299e45">Easy</span>
+                            break;
+                        case Difficulty.GotIt:
+                            <span class="badge" style="background:#ffeda0;color:#ec9000">Made it</span>
+                            break;
+                        case Difficulty.Struggled:
+                            <span class="badge" style="background:#ffcaca;color:#e63236">Hard</span>
+                            break;
+                        default:
+                            <span class="text-muted">—</span>
+                            break;
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="d-flex gap-3 justify-content-center mt-4">
+    <a asp-controller="WorkoutPlans" asp-action="Index" class="btn btn-outline-primary">Back to Plans</a>
+    <a asp-action="History" class="btn btn-primary">View History</a>
+</div>

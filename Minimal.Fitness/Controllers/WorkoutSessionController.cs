@@ -1,150 +1,162 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Minimal.Fitness.Data;
 using Minimal.Fitness.Models;
 using Minimal.Fitness.Models.Enums;
+using System.Security.Claims;
 
 namespace Minimal.Fitness.Controllers;
 
 [Authorize]
 public class WorkoutSessionController(ApplicationDbContext db) : Controller
 {
-    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Start(int planId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var plan = await db.WorkoutPlans
             .Include(p => p.Exercises.OrderBy(e => e.SortOrder))
             .FirstOrDefaultAsync(p => p.Id == planId);
+        if (plan == null) return NotFound();
 
-        if (plan is null)
-            return NotFound();
-
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var session = new WorkoutSession
         {
             UserId = userId,
             WorkoutPlanId = planId,
-            StartedAtUtc = DateTime.UtcNow,
+            StartedAtUtc = DateTime.UtcNow
         };
+        db.WorkoutSessions.Add(session);
+        await db.SaveChangesAsync();
 
         foreach (var pe in plan.Exercises)
         {
-            session.Exercises.Add(new SessionExercise
+            db.SessionExercises.Add(new SessionExercise
             {
+                WorkoutSessionId = session.Id,
                 ExerciseId = pe.ExerciseId,
-                SortOrder = pe.SortOrder,
+                SortOrder = pe.SortOrder
             });
         }
-
-        db.WorkoutSessions.Add(session);
         await db.SaveChangesAsync();
-        return RedirectToAction(nameof(Active), new { id = session.Id });
+
+        return RedirectToAction(nameof(Active), new { sessionId = session.Id, exerciseIndex = 0 });
     }
 
-    public async Task<IActionResult> Active(int id)
+    public async Task<IActionResult> Active(int sessionId, int exerciseIndex = 0)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var session = await db.WorkoutSessions
             .Include(s => s.WorkoutPlan)
-                .ThenInclude(p => p.Exercises.OrderBy(e => e.SortOrder))
-                    .ThenInclude(pe => pe.Exercise)
             .Include(s => s.Exercises.OrderBy(e => e.SortOrder))
                 .ThenInclude(se => se.Exercise)
             .Include(s => s.Exercises)
-                .ThenInclude(se => se.Sets)
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+                .ThenInclude(se => se.Sets.OrderBy(s => s.SetNumber))
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
 
-        if (session is null)
-            return NotFound();
+        if (session == null) return NotFound();
+        if (session.CompletedAtUtc.HasValue) return RedirectToAction(nameof(Summary), new { sessionId });
+
+        var exercises = session.Exercises.OrderBy(e => e.SortOrder).ToList();
+        if (exerciseIndex < 0 || exerciseIndex >= exercises.Count)
+            return RedirectToAction(nameof(Summary), new { sessionId });
+
+        var current = exercises[exerciseIndex];
+        var planExercise = await db.WorkoutPlanExercises
+            .FirstOrDefaultAsync(pe => pe.WorkoutPlanId == session.WorkoutPlanId && pe.ExerciseId == current.ExerciseId);
 
         var profile = await db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
-        ViewBag.RestSeconds = profile?.DefaultRestSeconds ?? 75;
 
-        var planExercises = session.WorkoutPlan.Exercises.OrderBy(e => e.SortOrder).ToList();
-        ViewBag.PlanExercises = planExercises;
+        ViewBag.SessionId = sessionId;
+        ViewBag.ExerciseIndex = exerciseIndex;
+        ViewBag.TotalExercises = exercises.Count;
+        ViewBag.PlanExercise = planExercise;
+        ViewBag.DefaultRestSeconds = profile?.DefaultRestSeconds ?? 75;
+        ViewBag.PlanName = session.WorkoutPlan.Name;
+
+        return View(current);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CompleteSet(int sessionExerciseId, int setNumber, int? reps, decimal? weight, int? durationSeconds)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var se = await db.SessionExercises
+            .Include(x => x.WorkoutSession)
+            .FirstOrDefaultAsync(x => x.Id == sessionExerciseId && x.WorkoutSession.UserId == userId);
+        if (se == null) return NotFound();
+
+        var existing = await db.ExerciseSets
+            .FirstOrDefaultAsync(s => s.SessionExerciseId == sessionExerciseId && s.SetNumber == setNumber);
+        if (existing != null)
+            return Json(new { ok = true, alreadyDone = true });
+
+        db.ExerciseSets.Add(new ExerciseSet
+        {
+            SessionExerciseId = sessionExerciseId,
+            SetNumber = setNumber,
+            Reps = reps,
+            Weight = weight,
+            DurationSeconds = durationSeconds,
+            CompletedAtUtc = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        return Json(new { ok = true });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RateExercise(int sessionExerciseId, Difficulty difficulty, int sessionId, int nextIndex)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var se = await db.SessionExercises
+            .Include(x => x.WorkoutSession)
+            .FirstOrDefaultAsync(x => x.Id == sessionExerciseId && x.WorkoutSession.UserId == userId);
+        if (se == null) return NotFound();
+
+        se.Difficulty = difficulty;
+        se.CompletedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = nextIndex });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Complete(int sessionId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var session = await db.WorkoutSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+        if (session == null) return NotFound();
+
+        session.CompletedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Summary), new { sessionId });
+    }
+
+    public async Task<IActionResult> Summary(int sessionId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var session = await db.WorkoutSessions
+            .Include(s => s.WorkoutPlan)
+            .Include(s => s.Exercises.OrderBy(e => e.SortOrder))
+                .ThenInclude(se => se.Exercise)
+            .Include(s => s.Exercises)
+                .ThenInclude(se => se.Sets.OrderBy(s => s.SetNumber))
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+        if (session == null) return NotFound();
 
         return View(session);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CompleteSet([FromBody] CompleteSetRequest request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var sessionExercise = await db.SessionExercises
-            .Include(se => se.Sets)
-            .Include(se => se.WorkoutSession)
-            .FirstOrDefaultAsync(se => se.Id == request.SessionExerciseId && se.WorkoutSession.UserId == userId);
-
-        if (sessionExercise is null)
-            return NotFound();
-
-        var set = new ExerciseSet
-        {
-            SessionExerciseId = sessionExercise.Id,
-            SetNumber = sessionExercise.Sets.Count + 1,
-            Reps = request.Reps,
-            Weight = request.Weight,
-            DurationSeconds = request.DurationSeconds,
-            CompletedAtUtc = DateTime.UtcNow,
-        };
-
-        db.ExerciseSets.Add(set);
-        await db.SaveChangesAsync();
-
-        return Json(new { setNumber = set.SetNumber, id = set.Id });
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> RateExercise([FromBody] RateExerciseRequest request)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var sessionExercise = await db.SessionExercises
-            .Include(se => se.WorkoutSession)
-            .FirstOrDefaultAsync(se => se.Id == request.SessionExerciseId && se.WorkoutSession.UserId == userId);
-
-        if (sessionExercise is null)
-            return NotFound();
-
-        sessionExercise.Difficulty = request.Difficulty;
-        sessionExercise.CompletedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-
-        return Ok();
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Complete(int id)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var session = await db.WorkoutSessions
-            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
-
-        if (session is null)
-            return NotFound();
-
-        session.CompletedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-        return RedirectToAction(nameof(History));
-    }
-
     public async Task<IActionResult> History()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var sessions = await db.WorkoutSessions
             .Include(s => s.WorkoutPlan)
-            .Include(s => s.Exercises.OrderBy(e => e.SortOrder))
-                .ThenInclude(se => se.Exercise)
             .Include(s => s.Exercises)
-                .ThenInclude(se => se.Sets)
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.StartedAtUtc)
             .ToListAsync();
-
         return View(sessions);
     }
 }
-
-public record CompleteSetRequest(int SessionExerciseId, int? Reps, decimal? Weight, int? DurationSeconds);
-public record RateExerciseRequest(int SessionExerciseId, Difficulty Difficulty);
