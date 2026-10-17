@@ -21,11 +21,17 @@
     @foreach (var ex in Model)
     {
         <div class="col">
-            <div class="card exercise-card h-100">
+            <a asp-action="Details" asp-route-id="@ex.Id" class="card exercise-card h-100 text-decoration-none text-body">
+                @if (ex.AnimationPath != null)
+                {
+                    <div class="card-img-top frame-anim p-2" style="height:180px">
+                        <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@ex.AnimationPath/frame-1.png" alt="@ex.Name" />
+                        <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@ex.AnimationPath/frame-2.png" alt="" loading="lazy" />
+                        <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@ex.AnimationPath/frame-3.png" alt="" loading="lazy" />
+                    </div>
+                }
                 <div class="card-body">
-                    <h5 class="card-title">
-                        <a asp-action="Details" asp-route-id="@ex.Id" class="text-decoration-none">@ex.Name</a>
-                    </h5>
+                    <h5 class="card-title">@ex.Name</h5>
                     <span class="badge bg-secondary">@ex.MuscleGroup</span>
                     <span class="badge @(ex.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
                         @(ex.TrackingType == TrackingType.Timer ? "⏱ Timer" : "Reps")
@@ -35,7 +41,7 @@
                         <small class="text-muted d-block mt-1">@ex.Equipment</small>
                     }
                 </div>
-            </div>
+            </a>
         </div>
     }
 </div>

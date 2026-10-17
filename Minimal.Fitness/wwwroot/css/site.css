@@ -36,12 +36,75 @@ body {
   font-size: 1.1rem;
 }
 
-.exercise-card {
-  transition: box-shadow 0.15s;
+a.exercise-card {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
 }
-.exercise-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+a.exercise-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
 }
+
+.exercise-img {
+  background: #1a1a2e;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+/* 3-frame ping-pong animation for card thumbnails: 1→2→3→2 */
+.frame-anim {
+  position: relative;
+  background: #1a1a2e;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.frame-anim img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.frame-anim img:nth-child(1) { animation: fa 2.8s steps(1) infinite; }
+.frame-anim img:nth-child(2) { animation: fb 2.8s steps(1) infinite; }
+.frame-anim img:nth-child(3) { animation: fc 2.8s steps(1) infinite; }
+@keyframes fa {
+  0%, 25% { opacity: 1; }
+  25.01%, 100% { opacity: 0; }
+}
+@keyframes fb {
+  0%, 25% { opacity: 0; }
+  25.01%, 50% { opacity: 1; }
+  50.01%, 75% { opacity: 0; }
+  75.01%, 100% { opacity: 1; }
+}
+@keyframes fc {
+  0%, 50% { opacity: 0; }
+  50.01%, 75% { opacity: 1; }
+  75.01%, 100% { opacity: 0; }
+}
+.exercise-img-sm {
+  background: #1a1a2e;
+  border-radius: 6px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* Drag-and-drop reorder */
+.drag-handle {
+  cursor: grab;
+  color: #aaa;
+  font-size: 1.2rem;
+  padding: 4px;
+  user-select: none;
+  touch-action: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-item { transition: transform 0.1s; }
+.drag-item.dragging { opacity: 0.4; }
+.drag-item.drag-over { border-top: 3px solid #0d6efd; }
 
 .exercise-placeholder {
   font-size: 3rem;
