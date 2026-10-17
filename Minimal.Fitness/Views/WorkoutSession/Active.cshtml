@@ -86,9 +86,27 @@
             align-items: center;
             justify-content: center;
         }
-        .animation dotlottie-player {
+        .animation img {
             width: 100%;
             height: 100%;
+            object-fit: contain;
+        }
+        .animation .frame-swap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .animation .frame-swap img {
+            position: absolute;
+            inset: 0;
+        }
+        .animation .frame-swap img:nth-child(2) {
+            animation: swap-frame 1.6s ease-in-out infinite;
+        }
+        @@keyframes swap-frame {
+            0%, 40% { opacity: 0; }
+            50%, 90% { opacity: 1; }
+            100% { opacity: 0; }
         }
         .animation-placeholder {
             font-size: 5rem;
@@ -293,10 +311,17 @@
         </div>
 
         <!-- Animation -->
+        @{
+            var cdnBase = "https://cdn.jsdelivr.net/npm/@bryllim/workout-guide@1.0.0/assets";
+            var slug = Model.Exercise.AnimationPath;
+        }
         <div class="animation" role="img" aria-label="@Model.Exercise.Name demonstration">
-            @if (Model.Exercise.AnimationPath != null)
+            @if (slug != null)
             {
-                <dotlottie-player src="~/@Model.Exercise.AnimationPath" autoplay loop></dotlottie-player>
+                <div class="frame-swap">
+                    <img src="@cdnBase/@slug/frame-1.svg" alt="" />
+                    <img src="@cdnBase/@slug/frame-2.svg" alt="" />
+                </div>
             }
             else
             {
@@ -455,7 +480,6 @@
         </div>
     </main>
 
-    <script src="https://unpkg.com/@@dotlottie/player-component@@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
     <script>
         (function () {
             const sessionExerciseId = @Model.Id;
