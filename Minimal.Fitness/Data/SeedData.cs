@@ -14,23 +14,23 @@ public static class SeedData
         if (await db.Exercises.AnyAsync())
             return;
 
-        var declinePress = new Exercise { Name = "Decline Press", MuscleGroup = MuscleGroup.Chest, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var latPulldown = new Exercise { Name = "Lat Pulldown", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var shoulderPress = new Exercise { Name = "Converging Shoulder Press", MuscleGroup = MuscleGroup.Shoulders, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var tricepExtensions = new Exercise { Name = "Tricep Extensions", MuscleGroup = MuscleGroup.Triceps, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var bicepsCurls = new Exercise { Name = "Biceps Curls", MuscleGroup = MuscleGroup.Biceps, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var latRow = new Exercise { Name = "Lat Row", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var pullUps = new Exercise { Name = "Pull Ups", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Pull-Up Bar" };
-        var pallofPress = new Exercise { Name = "Pallof Press", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps, Equipment = "Cable Machine" };
-        var toeToToeCrunch = new Exercise { Name = "Toe to Toe Crunch", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps };
-        var vCrunch = new Exercise { Name = "V-Crunch", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Timer };
-        var squats = new Exercise { Name = "Squats", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps };
-        var legPress = new Exercise { Name = "Leg Press", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var hamstringCurls = new Exercise { Name = "Hamstring Curls", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var legExtensions = new Exercise { Name = "Leg Extensions", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine" };
-        var plank = new Exercise { Name = "Plank", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Timer };
-        var hipThrusts = new Exercise { Name = "Hip Thrusts", MuscleGroup = MuscleGroup.Glutes, TrackingType = TrackingType.Reps };
-        var hangingKneeRaises = new Exercise { Name = "Hanging Knee Raises", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps, Equipment = "Pull-Up Bar" };
+        var declinePress = new Exercise { Name = "Decline Press", MuscleGroup = MuscleGroup.Chest, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "decline-bench-press" };
+        var latPulldown = new Exercise { Name = "Lat Pulldown", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "lat-pulldown" };
+        var shoulderPress = new Exercise { Name = "Converging Shoulder Press", MuscleGroup = MuscleGroup.Shoulders, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "machine-shoulder-press" };
+        var tricepExtensions = new Exercise { Name = "Tricep Extensions", MuscleGroup = MuscleGroup.Triceps, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "overhead-tricep-extension" };
+        var bicepsCurls = new Exercise { Name = "Biceps Curls", MuscleGroup = MuscleGroup.Biceps, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "bicep-curl" };
+        var latRow = new Exercise { Name = "Lat Row", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "seated-row" };
+        var pullUps = new Exercise { Name = "Pull Ups", MuscleGroup = MuscleGroup.Back, TrackingType = TrackingType.Reps, Equipment = "Pull-Up Bar", AnimationPath = "pull-up" };
+        var pallofPress = new Exercise { Name = "Pallof Press", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps, Equipment = "Cable Machine", AnimationPath = "pallof-press" };
+        var toeToToeCrunch = new Exercise { Name = "Toe to Toe Crunch", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps, AnimationPath = "crunch" };
+        var vCrunch = new Exercise { Name = "V-Crunch", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Timer, AnimationPath = "bicycle-crunch" };
+        var squats = new Exercise { Name = "Squats", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, AnimationPath = "bodyweight-squat" };
+        var legPress = new Exercise { Name = "Leg Press", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "leg-press" };
+        var hamstringCurls = new Exercise { Name = "Hamstring Curls", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "leg-curl" };
+        var legExtensions = new Exercise { Name = "Leg Extensions", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Reps, Equipment = "Machine", AnimationPath = "leg-extension" };
+        var plank = new Exercise { Name = "Plank", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Timer, AnimationPath = "plank" };
+        var hipThrusts = new Exercise { Name = "Hip Thrusts", MuscleGroup = MuscleGroup.Glutes, TrackingType = TrackingType.Reps, AnimationPath = "hip-thrust" };
+        var hangingKneeRaises = new Exercise { Name = "Hanging Knee Raises", MuscleGroup = MuscleGroup.Core, TrackingType = TrackingType.Reps, Equipment = "Pull-Up Bar", AnimationPath = "hanging-knee-raise" };
 
         db.Exercises.AddRange(declinePress, latPulldown, shoulderPress, tricepExtensions, bicepsCurls, latRow, pullUps, pallofPress, toeToToeCrunch, vCrunch, squats, legPress, hamstringCurls, legExtensions, plank, hipThrusts, hangingKneeRaises);
         await db.SaveChangesAsync();
