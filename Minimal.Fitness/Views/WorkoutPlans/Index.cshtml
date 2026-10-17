@@ -3,7 +3,16 @@
     ViewData["Title"] = "Workout Plans";
 }
 
-<h2>Workout Plans</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Workout Plans</h2>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="d-flex gap-2">
+            <a asp-action="RandomPlan" class="btn btn-outline-primary">🎲 Quick Mix</a>
+            <a asp-action="Create" class="btn btn-primary">+ Create Plan</a>
+        </div>
+    }
+</div>
 
 <div class="row row-cols-1 row-cols-md-2 g-3">
     @foreach (var plan in Model)
@@ -15,6 +24,7 @@
                         <a asp-action="Details" asp-route-id="@plan.Id" class="text-decoration-none">@plan.Name</a>
                     </h5>
                     @if (plan.IsSeeded) { <span class="badge bg-primary">Starter</span> }
+                    else { <span class="badge bg-secondary">Custom</span> }
                     @if (plan.Description != null) { <p class="card-text text-muted mt-2">@plan.Description</p> }
                     <p class="mb-0"><small class="text-muted">@plan.Exercises.Count exercises</small></p>
                 </div>

@@ -1,0 +1,282 @@
+@model Minimal.Fitness.Models.WorkoutPlan
+@using Minimal.Fitness.Models.Enums
+@{
+    ViewData["Title"] = "Edit Plan";
+    var allExercises = (List<Minimal.Fitness.Models.Exercise>)ViewBag.Exercises;
+}
+
+<h2>Edit: @Model.Name</h2>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        { <div>@err.ErrorMessage</div> }
+    </div>
+}
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" id="plan-form">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Plan Name</label>
+            <input type="text" name="name" class="form-control" value="@Model.Name" required />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Description (optional)</label>
+            <input type="text" name="description" class="form-control" value="@Model.Description" />
+        </div>
+    </div>
+
+    <h4>Exercises</h4>
+    <p class="text-muted">Drag ⠿ to reorder exercises.</p>
+    <div id="exercise-list">
+        @foreach (var pe in Model.Exercises.OrderBy(e => e.SortOrder))
+        {
+            var isTimer = pe.Exercise.TrackingType == TrackingType.Timer;
+            var slug = pe.Exercise.AnimationPath;
+            <div class="card mb-2 exercise-row drag-item" draggable="true">
+                <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-auto drag-handle" title="Drag to reorder">⠿</div>
+                        <div class="col-auto" style="width:50px">
+                            @if (slug != null)
+                            {
+                                <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@slug/frame-1.png"
+                                     class="exercise-img-sm" style="width:40px;height:40px" alt="" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">🏋️</span>
+                            }
+                        </div>
+                        <div class="col">
+                            <strong>@pe.Exercise.Name</strong>
+                            <small class="text-muted ms-1">@pe.Exercise.MuscleGroup</small>
+                            <input type="hidden" name="exerciseIds" value="@pe.ExerciseId" />
+                        </div>
+                        <div class="col-auto">
+                            <input type="text" name="sections" class="form-control form-control-sm" value="@pe.Section" style="width:90px" />
+                        </div>
+                        <div class="col-auto">
+                            <div class="input-group input-group-sm" style="width:100px">
+                                <input type="number" name="sets" class="form-control" value="@pe.DefaultSets" min="1" max="20" />
+                                <span class="input-group-text">sets</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            @if (isTimer)
+                            {
+                                <div class="input-group input-group-sm" style="width:110px">
+                                    <input type="number" name="durations" class="form-control" value="@pe.DefaultDurationSeconds" min="5" max="600" />
+                                    <span class="input-group-text">sec</span>
+                                    <input type="hidden" name="reps" value="" />
+                                    <input type="hidden" name="weights" value="" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex gap-1">
+                                    <div class="input-group input-group-sm" style="width:100px">
+                                        <input type="number" name="reps" class="form-control" value="@pe.DefaultReps" min="1" max="999" />
+                                        <span class="input-group-text">reps</span>
+                                    </div>
+                                    <div class="input-group input-group-sm" style="width:110px">
+                                        <input type="number" name="weights" class="form-control" value="@pe.DefaultWeight" min="0" step="2.5" />
+                                        <span class="input-group-text">lbs</span>
+                                    </div>
+                                    <input type="hidden" name="durations" value="" />
+                                </div>
+                            }
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-btn" title="Remove">✕</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button type="button" id="show-picker-btn" class="btn btn-outline-primary mb-3">+ Add Exercises</button>
+
+    <div class="d-flex gap-2 mt-3" id="edit-actions">
+        <button type="submit" class="btn btn-success btn-lg workout-btn">Save Changes</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-lg workout-btn">Cancel</a>
+    </div>
+</form>
+
+<!-- Exercise picker grid (hidden until "+ Add Exercises" clicked) -->
+@{
+    var cdnBase = "https://cdn.jsdelivr.net/npm/@bryllim/workout-guide@1.0.0/assets";
+}
+<div id="exercise-picker-panel" style="display:none">
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+        <h4 class="mb-0">Add Exercises</h4>
+        <button type="button" id="done-picking" class="btn btn-primary">Done</button>
+    </div>
+    <div class="mb-3">
+        <button type="button" class="filter-btn btn btn-sm btn-primary" data-group="all">All</button>
+        @foreach (MuscleGroup g in Enum.GetValues<MuscleGroup>())
+        {
+            <button type="button" class="filter-btn btn btn-sm btn-outline-primary" data-group="@g">@g</button>
+        }
+    </div>
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3" id="exercise-grid">
+        @foreach (var ex in allExercises.OrderBy(e => e.Name))
+        {
+            <div class="col exercise-pick-col" data-muscle="@ex.MuscleGroup">
+                <div class="card exercise-pick h-100" data-id="@ex.Id" data-name="@ex.Name"
+                     data-type="@ex.TrackingType" data-slug="@ex.AnimationPath" data-muscle="@ex.MuscleGroup">
+                    @if (ex.AnimationPath != null)
+                    {
+                        <div class="card-img-top frame-anim p-2" style="height:110px">
+                            <img src="@cdnBase/@ex.AnimationPath/frame-1.png" alt="@ex.Name" />
+                            <img src="@cdnBase/@ex.AnimationPath/frame-2.png" alt="" loading="lazy" />
+                            <img src="@cdnBase/@ex.AnimationPath/frame-3.png" alt="" loading="lazy" />
+                        </div>
+                    }
+                    <div class="card-body py-2 px-2">
+                        <div class="fw-semibold" style="font-size:0.8rem">@ex.Name</div>
+                        <small class="text-muted">@ex.MuscleGroup</small>
+                    </div>
+                    <div class="pick-check">✓</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<hr class="my-4" />
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+      onsubmit="return confirm('Delete this plan? This cannot be undone.')">
+    <button type="submit" class="btn btn-outline-danger">Delete Plan</button>
+</form>
+
+<style>
+    .exercise-pick { cursor:pointer; position:relative; transition:transform 0.15s; user-select:none; -webkit-tap-highlight-color:transparent; }
+    .exercise-pick:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+    .exercise-pick.selected { outline:3px solid #198754; outline-offset:-3px; }
+    .pick-check { position:absolute; top:6px; right:6px; width:32px; height:32px; background:#198754; color:#fff; border-radius:50%; display:none; align-items:center; justify-content:center; font-size:18px; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    .exercise-pick.selected .pick-check { display:flex; }
+</style>
+<script>
+(function () {
+    const list = document.getElementById('exercise-list');
+    const cdnBase = 'https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets';
+    const pickerPanel = document.getElementById('exercise-picker-panel');
+    const planForm = document.getElementById('plan-form');
+    const grid = document.getElementById('exercise-grid');
+    const showPickerBtn = document.getElementById('show-picker-btn');
+    const donePickingBtn = document.getElementById('done-picking');
+
+    function getExistingIds() {
+        return new Set([...list.querySelectorAll('input[name="exerciseIds"]')].map(i => i.value));
+    }
+
+    function syncPickerState() {
+        const ids = getExistingIds();
+        grid.querySelectorAll('.exercise-pick').forEach(card => {
+            card.classList.toggle('selected', ids.has(card.dataset.id));
+        });
+    }
+
+    showPickerBtn.addEventListener('click', () => {
+        planForm.style.display = 'none';
+        pickerPanel.style.display = '';
+        syncPickerState();
+        window.scrollTo(0, pickerPanel.offsetTop - 80);
+    });
+
+    donePickingBtn.addEventListener('click', () => {
+        const selectedIds = new Set([...grid.querySelectorAll('.exercise-pick.selected')].map(c => c.dataset.id));
+        const existing = getExistingIds();
+        // Remove exercises that were unchecked
+        list.querySelectorAll('.exercise-row').forEach(row => {
+            const id = row.querySelector('input[name="exerciseIds"]')?.value;
+            if (id && !selectedIds.has(id)) row.remove();
+        });
+        // Add newly selected exercises
+        grid.querySelectorAll('.exercise-pick.selected').forEach(card => {
+            if (existing.has(card.dataset.id)) return;
+            addExerciseRow(card.dataset.id, card.dataset.name, card.dataset.type, card.dataset.slug, card.dataset.muscle);
+        });
+        pickerPanel.style.display = 'none';
+        planForm.style.display = '';
+        window.scrollTo(0, 0);
+    });
+
+    grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.exercise-pick');
+        if (!card) return;
+        card.classList.toggle('selected');
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary', 'btn-outline-primary'));
+            btn.classList.replace('btn-outline-primary', 'btn-primary');
+            const group = btn.dataset.group;
+            document.querySelectorAll('.exercise-pick-col').forEach(col => {
+                col.style.display = (group === 'all' || col.dataset.muscle === group) ? '' : 'none';
+            });
+        });
+    });
+
+    function addExerciseRow(id, name, type, slug, muscle) {
+        const imgSrc = slug ? cdnBase + '/' + slug + '/frame-1.png' : '';
+        const isTimer = type === 'Timer';
+        // Intentionally not using template literals to avoid Razor brace issues
+        list.insertAdjacentHTML('beforeend',
+            '<div class="card mb-2 exercise-row drag-item" draggable="true"><div class="card-body py-2"><div class="row g-2 align-items-center">' +
+            '<div class="col-auto drag-handle" title="Drag to reorder">\u283f</div>' +
+            '<div class="col-auto" style="width:50px">' +
+            (imgSrc ? '<img src="' + imgSrc + '" class="exercise-img-sm" style="width:40px;height:40px" alt="" />' : '<span class="text-muted">\ud83c\udfcb\ufe0f</span>') +
+            '</div><div class="col"><strong>' + name + '</strong><small class="text-muted ms-1">' + muscle + '</small>' +
+            '<input type="hidden" name="exerciseIds" value="' + id + '" /></div>' +
+            '<div class="col-auto"><input type="text" name="sections" class="form-control form-control-sm" value="Main" style="width:80px" /></div>' +
+            '<div class="col-auto"><div class="input-group input-group-sm" style="width:95px"><input type="number" name="sets" class="form-control" value="3" min="1" max="20" /><span class="input-group-text">sets</span></div></div>' +
+            '<div class="col-auto">' +
+            (isTimer
+                ? '<div class="input-group input-group-sm" style="width:105px"><input type="number" name="durations" class="form-control" value="60" min="5" /><span class="input-group-text">sec</span><input type="hidden" name="reps" value="" /><input type="hidden" name="weights" value="" /></div>'
+                : '<div class="d-flex gap-1"><div class="input-group input-group-sm" style="width:90px"><input type="number" name="reps" class="form-control" value="10" min="1" /><span class="input-group-text">reps</span></div><div class="input-group input-group-sm" style="width:105px"><input type="number" name="weights" class="form-control" value="" min="0" step="2.5" placeholder="\u2014" /><span class="input-group-text">lbs</span></div><input type="hidden" name="durations" value="" /></div>') +
+            '</div><div class="col-auto"><button type="button" class="btn btn-sm btn-outline-danger remove-btn" title="Remove">\u2715</button></div>' +
+            '</div></div></div>');
+    }
+
+    list.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-btn')) {
+            e.target.closest('.exercise-row').remove();
+        }
+    });
+
+    // Drag-and-drop reorder
+    let dragEl = null;
+    list.addEventListener('dragstart', (e) => {
+        dragEl = e.target.closest('.drag-item');
+        if (!dragEl) return;
+        dragEl.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragend', () => {
+        if (dragEl) dragEl.classList.remove('dragging');
+        list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        dragEl = null;
+    });
+    list.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const target = e.target.closest('.drag-item');
+        if (!target || target === dragEl) return;
+        list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+    });
+    list.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const target = e.target.closest('.drag-item');
+        if (!target || target === dragEl) return;
+        target.classList.remove('drag-over');
+        const items = [...list.children];
+        if (items.indexOf(dragEl) < items.indexOf(target)) target.after(dragEl);
+        else target.before(dragEl);
+    });
+})();
+</script>
