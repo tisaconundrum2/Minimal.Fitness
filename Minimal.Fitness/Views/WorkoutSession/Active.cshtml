@@ -79,7 +79,7 @@
             width: 100%;
             aspect-ratio: 1;
             margin: 8px auto 0;
-            background: #f8f8f8;
+            background: #1a1a2e;
             border-radius: 20px;
             overflow: hidden;
             display: flex;
@@ -100,13 +100,30 @@
             position: absolute;
             inset: 0;
         }
-        .animation .frame-swap img:nth-child(2) {
-            animation: swap-frame 1.6s ease-in-out infinite;
+        /* 1→2→3→2 loop: 4 beats × 0.7s = 2.8s */
+        .animation .frame-swap img:nth-child(1) {
+            animation: frame-a 2.8s steps(1) infinite;
         }
-        @@keyframes swap-frame {
-            0%, 40% { opacity: 0; }
-            50%, 90% { opacity: 1; }
-            100% { opacity: 0; }
+        .animation .frame-swap img:nth-child(2) {
+            animation: frame-b 2.8s steps(1) infinite;
+        }
+        .animation .frame-swap img:nth-child(3) {
+            animation: frame-c 2.8s steps(1) infinite;
+        }
+        @@keyframes frame-a {
+            0%, 25% { opacity: 1; }
+            25.01%, 100% { opacity: 0; }
+        }
+        @@keyframes frame-b {
+            0%, 25% { opacity: 0; }
+            25.01%, 50% { opacity: 1; }
+            50.01%, 75% { opacity: 0; }
+            75.01%, 100% { opacity: 1; }
+        }
+        @@keyframes frame-c {
+            0%, 50% { opacity: 0; }
+            50.01%, 75% { opacity: 1; }
+            75.01%, 100% { opacity: 0; }
         }
         .animation-placeholder {
             font-size: 5rem;
@@ -319,8 +336,9 @@
             @if (slug != null)
             {
                 <div class="frame-swap">
-                    <img src="@cdnBase/@slug/frame-1.svg" alt="" />
-                    <img src="@cdnBase/@slug/frame-2.svg" alt="" />
+                    <img src="@cdnBase/@slug/frame-1.png" alt="" />
+                    <img src="@cdnBase/@slug/frame-2.png" alt="" />
+                    <img src="@cdnBase/@slug/frame-3.png" alt="" />
                 </div>
             }
             else
