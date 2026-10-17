@@ -10,6 +10,13 @@
     </ol>
 </nav>
 
+@if (Model.AnimationPath != null)
+{
+    <div class="d-flex justify-content-center mb-3" style="padding:16px">
+        <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@Model.AnimationPath/frame-1.png"
+             alt="@Model.Name" class="exercise-img" style="max-width:300px;width:100%;padding:16px" />
+    </div>
+}
 <h2>@Model.Name</h2>
 <p><span class="badge bg-secondary">@Model.MuscleGroup</span>
    <span class="badge bg-info">@Model.TrackingType</span></p>

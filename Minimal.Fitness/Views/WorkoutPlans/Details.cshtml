@@ -30,7 +30,14 @@
             @foreach (var pe in grp.OrderBy(e => e.SortOrder))
             {
                 <tr>
-                    <td><a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId">@pe.Exercise.Name</a></td>
+                    <td>
+                        @if (pe.Exercise.AnimationPath != null)
+                        {
+                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-1.png"
+                                 class="exercise-img-sm" style="width:36px;height:36px;margin-right:6px" alt="" />
+                        }
+                        <a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId">@pe.Exercise.Name</a>
+                    </td>
                     <td>@pe.DefaultSets</td>
                     <td>
                         @if (pe.Exercise.TrackingType == TrackingType.Timer)
@@ -47,6 +54,13 @@
 
 @if (User.Identity?.IsAuthenticated == true)
 {
-    <a asp-controller="WorkoutSession" asp-action="Start" asp-route-planId="@Model.Id"
-       class="btn btn-primary btn-lg workout-btn mt-3">Start Workout</a>
+    <div class="d-flex gap-2 mt-3">
+        <a asp-controller="WorkoutSession" asp-action="Start" asp-route-planId="@Model.Id"
+           class="btn btn-primary btn-lg workout-btn">Start Workout</a>
+        @if (!Model.IsSeeded)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id"
+               class="btn btn-outline-secondary btn-lg workout-btn">Edit Plan</a>
+        }
+    </div>
 }
