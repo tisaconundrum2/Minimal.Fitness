@@ -6,7 +6,7 @@ namespace Minimal.Fitness.Models;
 public class UserProfile
 {
     public int Id { get; set; }
-    public required string UserId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public Gender Gender { get; set; }
     public int DefaultRestSeconds { get; set; } = 75;
 
