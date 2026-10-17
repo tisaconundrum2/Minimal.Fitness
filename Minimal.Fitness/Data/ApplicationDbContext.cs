@@ -16,6 +16,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        builder.HasDefaultSchema("minimal-fitness");
         base.OnModelCreating(builder);
 
         builder.Entity<Exercise>(e =>
