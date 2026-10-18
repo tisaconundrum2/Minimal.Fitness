@@ -54,10 +54,15 @@
 
 @if (User.Identity?.IsAuthenticated == true)
 {
-    <div class="d-flex gap-2 mt-3">
+    <div class="d-flex gap-2 mt-3 flex-wrap">
         <a asp-controller="WorkoutSession" asp-action="Start" asp-route-planId="@Model.Id"
            class="btn btn-primary btn-lg workout-btn">Start Workout</a>
-        @if (!Model.IsSeeded)
+        @if (Model.IsSeeded)
+        {
+            <a asp-action="Duplicate" asp-route-id="@Model.Id"
+               class="btn btn-outline-secondary btn-lg workout-btn">Duplicate & Edit</a>
+        }
+        else
         {
             <a asp-action="Edit" asp-route-id="@Model.Id"
                class="btn btn-outline-secondary btn-lg workout-btn">Edit Plan</a>

@@ -129,12 +129,50 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = plan.Id });
     }
 
+    [Authorize]
+    public async Task<IActionResult> Duplicate(int id)
+    {
+        var source = await db.WorkoutPlans
+            .Include(p => p.Exercises.OrderBy(e => e.SortOrder))
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (source == null) return NotFound();
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var copy = new WorkoutPlan
+        {
+            Name = source.Name + " (Copy)",
+            Description = source.Description,
+            CreatedByUserId = userId,
+            IsSeeded = false
+        };
+        db.WorkoutPlans.Add(copy);
+        await db.SaveChangesAsync();
+
+        foreach (var pe in source.Exercises)
+        {
+            db.WorkoutPlanExercises.Add(new WorkoutPlanExercise
+            {
+                WorkoutPlanId = copy.Id,
+                ExerciseId = pe.ExerciseId,
+                Section = pe.Section,
+                SortOrder = pe.SortOrder,
+                DefaultSets = pe.DefaultSets,
+                DefaultReps = pe.DefaultReps,
+                DefaultWeight = pe.DefaultWeight,
+                DefaultDurationSeconds = pe.DefaultDurationSeconds
+            });
+        }
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Edit), new { id = copy.Id });
+    }
+
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var plan = await db.WorkoutPlans
-            .FirstOrDefaultAsync(p => p.Id == id && !p.IsSeeded && p.CreatedByUserId == userId);
+            .FirstOrDefaultAsync(p => p.Id == id && (p.IsSeeded || p.CreatedByUserId == userId));
         if (plan == null) return NotFound();
 
         db.WorkoutPlans.Remove(plan);
