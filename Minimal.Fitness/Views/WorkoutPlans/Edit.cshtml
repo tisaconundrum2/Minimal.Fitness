@@ -283,12 +283,49 @@
         else target.before(dragEl);
     });
 
+    // Touch drag support for mobile
+    let touchEl = null;
+    list.addEventListener('touchstart', (e) => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        touchEl = handle.closest('.drag-item');
+        if (!touchEl) return;
+        touchEl.classList.add('dragging');
+    }, { passive: true });
+    list.addEventListener('touchmove', (e) => {
+        if (!touchEl) return;
+        e.preventDefault();
+        const y = e.touches[0].clientY;
+        const items = [...list.querySelectorAll('.drag-item:not(.dragging)')];
+        list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        for (const item of items) {
+            const rect = item.getBoundingClientRect();
+            if (y > rect.top && y < rect.bottom) {
+                item.classList.add('drag-over');
+                break;
+            }
+        }
+    }, { passive: false });
+    list.addEventListener('touchend', () => {
+        if (!touchEl) return;
+        const target = list.querySelector('.drag-over');
+        if (target) {
+            const items = [...list.children];
+            if (items.indexOf(touchEl) < items.indexOf(target)) target.after(touchEl);
+            else target.before(touchEl);
+            target.classList.remove('drag-over');
+        }
+        touchEl.classList.remove('dragging');
+        touchEl = null;
+    });
+
     // Swipe-to-delete for exercise rows
     function initSwipe(container) {
         const content = container.querySelector('.swipe-content');
         if (!content) return;
         let startX = 0, curX = 0, active = false;
         content.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.drag-handle')) return;
             startX = e.touches[0].clientX;
             curX = 0;
             active = true;

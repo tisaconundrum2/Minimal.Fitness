@@ -172,9 +172,13 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var plan = await db.WorkoutPlans
+            .Include(p => p.Sessions)
+                .ThenInclude(s => s.Exercises)
             .FirstOrDefaultAsync(p => p.Id == id && (p.IsSeeded || p.CreatedByUserId == userId));
         if (plan == null) return NotFound();
 
+        db.SessionExercises.RemoveRange(plan.Sessions.SelectMany(s => s.Exercises));
+        db.WorkoutSessions.RemoveRange(plan.Sessions);
         db.WorkoutPlans.Remove(plan);
         await db.SaveChangesAsync();
 

@@ -23,33 +23,29 @@
                 <div class="swipe-container" data-plan-id="@plan.Id" data-plan-name="@plan.Name">
                     <div class="swipe-delete-bg">Delete</div>
                     <div class="swipe-content">
-                        <div class="card exercise-card h-100">
+                        <a asp-action="Details" asp-route-id="@plan.Id" class="card exercise-card h-100 text-decoration-none text-reset">
                             <div class="card-body">
-                                <h5 class="card-title">
-                                    <a asp-action="Details" asp-route-id="@plan.Id" class="text-decoration-none">@plan.Name</a>
-                                </h5>
+                                <h5 class="card-title">@plan.Name</h5>
                                 @if (plan.IsSeeded) { <span class="badge bg-primary">Starter</span> }
                                 else { <span class="badge bg-secondary">Custom</span> }
                                 @if (plan.Description != null) { <p class="card-text text-muted mt-2">@plan.Description</p> }
                                 <p class="mb-0"><small class="text-muted">@plan.Exercises.Count exercises</small></p>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
             }
             else
             {
-                <div class="card exercise-card h-100">
+                <a asp-action="Details" asp-route-id="@plan.Id" class="card exercise-card h-100 text-decoration-none text-reset">
                     <div class="card-body">
-                        <h5 class="card-title">
-                            <a asp-action="Details" asp-route-id="@plan.Id" class="text-decoration-none">@plan.Name</a>
-                        </h5>
+                        <h5 class="card-title">@plan.Name</h5>
                         @if (plan.IsSeeded) { <span class="badge bg-primary">Starter</span> }
                         else { <span class="badge bg-secondary">Custom</span> }
                         @if (plan.Description != null) { <p class="card-text text-muted mt-2">@plan.Description</p> }
                         <p class="mb-0"><small class="text-muted">@plan.Exercises.Count exercises</small></p>
                     </div>
-                </div>
+                </a>
             }
         </div>
     }
