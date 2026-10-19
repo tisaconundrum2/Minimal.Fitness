@@ -50,6 +50,9 @@ Open `http://localhost:5117` (or `http://<your-ip>:5117` from your phone).
 
 On first run, the app seeds 120 exercises and 2 starter workout plans (Upper Body + Lower Body). If the `Exercises` table already has data, seeding is skipped.
 
+To force a reseed in Development, set `SeedData:ResetOnStartup` to `true` in [appsettings.Development.json](./Minimal.Fitness/appsettings.Development.json).  
+This clears workout/session/exercise tables before seeding so the starter data can be recreated.
+
 ## Project Structure
 
 ```

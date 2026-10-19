@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Minimal.Fitness.Models;
 using Minimal.Fitness.Models.Enums;
 
@@ -6,10 +9,41 @@ namespace Minimal.Fitness.Data;
 
 public static class SeedData
 {
+    private const string StarterPlansUserId = "00000000-0000-0000-0000-000000000001";
+
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var environment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var resetOnStartup = configuration.GetValue<bool>("SeedData:ResetOnStartup");
+
+        if (resetOnStartup)
+        {
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "SeedData:ResetOnStartup is only supported in Development to prevent destructive data loss.");
+            }
+
+            await ResetSeedDataAsync(db);
+        }
+
+        var starterPlansUser = await db.Users.FirstOrDefaultAsync(u => u.Id == StarterPlansUserId);
+        if (starterPlansUser == null)
+        {
+            db.Users.Add(new IdentityUser
+            {
+                Id = StarterPlansUserId,
+                UserName = "starter-plans",
+                NormalizedUserName = "STARTER-PLANS",
+                Email = "starter-plans@local",
+                NormalizedEmail = "STARTER-PLANS@LOCAL",
+                EmailConfirmed = true
+            });
+            await db.SaveChangesAsync();
+        }
 
         if (await db.Exercises.AnyAsync())
             return;
@@ -136,6 +170,7 @@ public static class SeedData
             new() { Name = "Farmer Carry", MuscleGroup = MuscleGroup.FullBody, TrackingType = TrackingType.Timer, Equipment = "Dumbbell", AnimationPath = "farmer-carry" },
             new() { Name = "Battle Ropes", MuscleGroup = MuscleGroup.Shoulders, TrackingType = TrackingType.Timer, Equipment = "Cardio", AnimationPath = "battle-ropes" },
             new() { Name = "Jump Rope", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Timer, Equipment = "Cardio", AnimationPath = "jump-rope" },
+            new() { Name = "Treadmill Incline Walk", MuscleGroup = MuscleGroup.Legs, TrackingType = TrackingType.Timer, Equipment = "Cardio", AnimationPath = "treadmill-incline-walk" },
             new() { Name = "Burpee", MuscleGroup = MuscleGroup.FullBody, TrackingType = TrackingType.Reps, Equipment = "Bodyweight", AnimationPath = "burpee" },
             new() { Name = "Rowing", MuscleGroup = MuscleGroup.FullBody, TrackingType = TrackingType.Timer, Equipment = "Machine", AnimationPath = "rowing" },
             new() { Name = "Assault Bike", MuscleGroup = MuscleGroup.FullBody, TrackingType = TrackingType.Timer, Equipment = "Machine", AnimationPath = "assault-bike" }
@@ -147,6 +182,7 @@ public static class SeedData
         {
             Name = "Workout A (Upper Body)",
             Description = "Upper body compound and isolation movements with core work",
+            CreatedByUserId = StarterPlansUserId,
             IsSeeded = true,
             Exercises =
             [
@@ -167,6 +203,7 @@ public static class SeedData
         {
             Name = "Workout B (Lower Body)",
             Description = "Lower body strength with core work",
+            CreatedByUserId = StarterPlansUserId,
             IsSeeded = true,
             Exercises =
             [
@@ -182,5 +219,19 @@ public static class SeedData
 
         db.WorkoutPlans.AddRange(workoutA, workoutB);
         await db.SaveChangesAsync();
+    }
+
+    private static async Task ResetSeedDataAsync(ApplicationDbContext db)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        await db.ExerciseSets.ExecuteDeleteAsync();
+        await db.SessionExercises.ExecuteDeleteAsync();
+        await db.WorkoutSessions.ExecuteDeleteAsync();
+        await db.WorkoutPlanExercises.ExecuteDeleteAsync();
+        await db.WorkoutPlans.ExecuteDeleteAsync();
+        await db.Exercises.ExecuteDeleteAsync();
+
+        await transaction.CommitAsync();
     }
 }

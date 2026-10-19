@@ -12,20 +12,46 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
 {
     public async Task<IActionResult> Index()
     {
-        var plans = await db.WorkoutPlans
-            .Include(p => p.Exercises)
+        var isAuthenticated = User.Identity?.IsAuthenticated == true;
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        IQueryable<WorkoutPlan> query = db.WorkoutPlans
+            .Include(p => p.Exercises);
+
+        if (isAuthenticated)
+        {
+            query = query.Where(p => p.IsSeeded || p.CreatedByUserId == userId);
+        }
+        else
+        {
+            query = query.Where(p => p.IsSeeded);
+        }
+
+        var plans = await query
             .OrderBy(p => p.Name)
             .ToListAsync();
+
         return View(plans);
     }
 
     public async Task<IActionResult> Details(int id)
     {
+        var isAuthenticated = User.Identity?.IsAuthenticated == true;
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         var plan = await db.WorkoutPlans
             .Include(p => p.Exercises.OrderBy(e => e.SortOrder))
                 .ThenInclude(pe => pe.Exercise)
             .FirstOrDefaultAsync(p => p.Id == id);
+
         if (plan == null) return NotFound();
+
+        if (!isAuthenticated && !plan.IsSeeded)
+            return NotFound();
+
+        if (isAuthenticated && !plan.IsSeeded && plan.CreatedByUserId != userId)
+            return Forbid();
+
         return View(plan);
     }
 
@@ -37,13 +63,13 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
     }
 
     [HttpPost, Authorize, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(string name, string? description, int[] exerciseIds, string[] sections, int[] sets, int?[] reps, decimal?[] weights, int?[] durations)
+    public async Task<IActionResult> Create(string name, string? description, int[] exerciseIds, string[] sections, int[] sets, int?[] reps, decimal?[] weights, int?[] durations, int? restSeconds)
     {
         if (string.IsNullOrWhiteSpace(name) || exerciseIds.Length == 0)
         {
             ViewBag.Exercises = await db.Exercises.OrderBy(e => e.Name).ToListAsync();
             ModelState.AddModelError("", "Name and at least one exercise are required.");
-            return View(new WorkoutPlan { Name = name ?? "", Description = description });
+            return View(new WorkoutPlan { Name = name ?? "", Description = description, RestSeconds = restSeconds ?? 75 });
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -51,6 +77,7 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
         {
             Name = name,
             Description = description,
+            RestSeconds = Math.Clamp(restSeconds ?? 75, 15, 180),
             CreatedByUserId = userId,
             IsSeeded = false
         };
@@ -91,7 +118,7 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
     }
 
     [HttpPost, Authorize, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, string name, string? description, int[] exerciseIds, string[] sections, int[] sets, int?[] reps, decimal?[] weights, int?[] durations)
+    public async Task<IActionResult> Edit(int id, string name, string? description, int[] exerciseIds, string[] sections, int[] sets, int?[] reps, decimal?[] weights, int?[] durations, int? restSeconds)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var plan = await db.WorkoutPlans
@@ -108,6 +135,7 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
 
         plan.Name = name;
         plan.Description = description;
+        plan.RestSeconds = Math.Clamp(restSeconds ?? plan.RestSeconds, 15, 180);
         db.WorkoutPlanExercises.RemoveRange(plan.Exercises);
 
         for (int i = 0; i < exerciseIds.Length; i++)
@@ -142,6 +170,7 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
         {
             Name = source.Name + " (Copy)",
             Description = source.Description,
+            RestSeconds = source.RestSeconds,
             CreatedByUserId = userId,
             IsSeeded = false
         };

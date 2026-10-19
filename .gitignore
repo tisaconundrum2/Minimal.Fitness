@@ -59,3 +59,4 @@ app.db
 app.db-shm
 app.db-wal
 .vscode/
+Minimal.Fitness/appsettings.Production.json

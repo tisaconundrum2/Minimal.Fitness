@@ -7,6 +7,7 @@ public class WorkoutPlan
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int RestSeconds { get; set; } = 75;
     public string? CreatedByUserId { get; set; }
     public bool IsSeeded { get; set; }
 

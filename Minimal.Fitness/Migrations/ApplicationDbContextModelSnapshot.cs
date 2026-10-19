@@ -374,6 +374,9 @@ namespace Minimal.Fitness.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("RestSeconds")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");

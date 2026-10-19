@@ -65,12 +65,13 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             .FirstOrDefaultAsync(pe => pe.WorkoutPlanId == session.WorkoutPlanId && pe.ExerciseId == current.ExerciseId);
 
         var profile = await db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+        var restSeconds = session.WorkoutPlan.RestSeconds > 0 ? session.WorkoutPlan.RestSeconds : (profile?.DefaultRestSeconds ?? 75);
 
         ViewBag.SessionId = sessionId;
         ViewBag.ExerciseIndex = exerciseIndex;
         ViewBag.TotalExercises = exercises.Count;
         ViewBag.PlanExercise = planExercise;
-        ViewBag.DefaultRestSeconds = profile?.DefaultRestSeconds ?? 75;
+        ViewBag.DefaultRestSeconds = restSeconds;
         ViewBag.PlanName = session.WorkoutPlan.Name;
 
         return View(current);
