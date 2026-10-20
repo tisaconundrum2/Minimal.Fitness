@@ -4,7 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Minimal.Fitness-6a314494-36a8-4524-8f24-85978e9ba33b</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
