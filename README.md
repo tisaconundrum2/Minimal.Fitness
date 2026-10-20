@@ -46,19 +46,67 @@ dotnet run
 
 Open `http://localhost:5117` (or `http://<your-ip>:5117` from your phone).
 
-### Seed Data
+### Local DB with OrbStack (Docker)
 
-On first run, the app seeds 120 exercises and 2 starter workout plans (Upper Body + Lower Body). If the `Exercises` table already has data, seeding is skipped.
+Run a local PostgreSQL container from the repository root:
 
-To force a reseed in Development, set `SeedData:ResetOnStartup` to `true` in [appsettings.Development.json](./Minimal.Fitness/appsettings.Development.json).  
-This clears workout/session/exercise tables before seeding so the starter data can be recreated.
+```bash
+docker compose up -d db
+```
+
+The app is preconfigured for local development in `appsettings.Development.json`:
+
+- Host: `localhost`
+- Port: `5432`
+- Database: `minimal_fitness`
+- Username: `fitness`
+
+Apply migrations to local DB:
+
+```bash
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project Minimal.Fitness/Minimal.Fitness.csproj
+```
+
+Stop the local DB:
+
+```bash
+docker compose down
+```
+
+### Seed Data (Migration-Driven)
+
+Starter data (exercise catalog + starter workout plans) is applied through EF Core migrations, not runtime startup seeding.
+
+Current seed migration:
+
+- `20261020011842_SeedStarterData`
+
+Add or update starter data in the future:
+
+```bash
+# 1) Create a migration
+dotnet ef migrations add <MeaningfulName> --project Minimal.Fitness/Minimal.Fitness.csproj
+
+# 2) Edit the generated migration and add INSERT/UPDATE SQL in Up (and rollback SQL in Down)
+
+# 3) Apply it
+dotnet ef database update --project Minimal.Fitness/Minimal.Fitness.csproj
+```
+
+If you use user-secrets for `ConnectionStrings:DefaultConnection`, EF commands may target that database instead of `appsettings.Development.json`. For local-only runs, pass an explicit connection:
+
+```bash
+dotnet ef database update \
+  --project Minimal.Fitness/Minimal.Fitness.csproj \
+  --connection "Host=localhost;Port=5432;Database=minimal_fitness;Username=fitness;Password=fitness_local_dev;SSL Mode=Disable"
+```
 
 ## Project Structure
 
 ```
 Minimal.Fitness/
 ├── Controllers/         # MVC controllers (Home, Exercises, WorkoutPlans, WorkoutSession, Profile)
-├── Data/                # ApplicationDbContext + SeedData
+├── Data/                # ApplicationDbContext
 ├── Migrations/          # EF Core PostgreSQL migrations
 ├── Models/              # Exercise, WorkoutPlan, WorkoutSession, ExerciseSet, etc.
 │   └── Enums/           # TrackingType, MuscleGroup, Gender, Difficulty
