@@ -2,7 +2,14 @@
 @using Minimal.Fitness.Models.Enums
 @{
     ViewData["Title"] = "Workout Complete";
-    var duration = (Model.CompletedAtUtc ?? DateTime.UtcNow) - Model.StartedAtUtc;
+    var lastSetTime = Model.Exercises
+        .SelectMany(e => e.Sets)
+        .Select(s => s.CompletedAtUtc)
+        .DefaultIfEmpty(Model.StartedAtUtc)
+        .Max();
+    var endTime = new[] { lastSetTime, Model.CompletedAtUtc ?? lastSetTime }.Min();
+    if (endTime < Model.StartedAtUtc) endTime = Model.StartedAtUtc;
+    var duration = endTime - Model.StartedAtUtc;
 }
 
 <div class="text-center py-4">

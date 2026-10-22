@@ -155,9 +155,26 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
         var sessions = await db.WorkoutSessions
             .Include(s => s.WorkoutPlan)
             .Include(s => s.Exercises)
+                .ThenInclude(e => e.Sets)
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.StartedAtUtc)
             .ToListAsync();
         return View(sessions);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var session = await db.WorkoutSessions
+            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+
+        if (session == null)
+            return NotFound();
+
+        db.WorkoutSessions.Remove(session);
+        await db.SaveChangesAsync();
+
+        return Ok();
     }
 }

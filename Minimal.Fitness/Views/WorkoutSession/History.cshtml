@@ -11,21 +11,146 @@
 }
 else
 {
-    <div class="list-group">
+    <div class="list-group" id="history-list">
         @foreach (var s in Model)
         {
-            var duration = (s.CompletedAtUtc ?? s.StartedAtUtc) - s.StartedAtUtc;
-            <a asp-action="Summary" asp-route-sessionId="@s.Id" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between">
-                    <strong>@s.WorkoutPlan.Name</strong>
-                    <small class="text-muted">@s.StartedAtUtc.ToLocalTime().ToString("MMM d, yyyy")</small>
+            var lastSetTime = s.Exercises
+                .SelectMany(e => e.Sets)
+                .Select(x => x.CompletedAtUtc)
+                .DefaultIfEmpty(s.StartedAtUtc)
+                .Max();
+            var endTime = new[] { lastSetTime, s.CompletedAtUtc ?? lastSetTime }.Min();
+            if (endTime < s.StartedAtUtc) endTime = s.StartedAtUtc;
+            var duration = endTime - s.StartedAtUtc;
+            var displayName = $"{s.WorkoutPlan.Name} - {s.StartedAtUtc.ToLocalTime():MMM d, yyyy}";
+            <div class="swipe-container" data-session-id="@s.Id" data-session-name="@displayName">
+                <div class="swipe-delete-bg">Delete</div>
+                <div class="swipe-content">
+                    <a asp-action="Summary" asp-route-sessionId="@s.Id" class="list-group-item list-group-item-action history-row-item">
+                        <button type="button" class="btn-delete-x" title="Delete workout">&times;</button>
+                        <div class="d-flex justify-content-between pe-3">
+                            <strong>@s.WorkoutPlan.Name</strong>
+                            <small class="text-muted">@s.StartedAtUtc.ToLocalTime().ToString("MMM d, yyyy")</small>
+                        </div>
+                        <small class="text-muted">
+                            @s.Exercises.Count exercises &middot;
+                            @duration.TotalMinutes.ToString("F0") min
+                            @if (s.CompletedAtUtc == null) { <span class="badge bg-warning text-dark">In Progress</span> }
+                        </small>
+                    </a>
                 </div>
-                <small class="text-muted">
-                    @s.Exercises.Count exercises &middot;
-                    @duration.TotalMinutes.ToString("F0") min
-                    @if (s.CompletedAtUtc == null) { <span class="badge bg-warning text-dark">In Progress</span> }
-                </small>
-            </a>
+            </div>
         }
     </div>
 }
+
+<div class="modal fade" id="deleteSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <h5 class="mb-2">Delete Workout?</h5>
+                <p class="text-muted mb-0" id="deleteSessionModalName"></p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteSessionBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteThreshold = -80;
+    let pendingContainer = null;
+    const modalEl = document.getElementById('deleteSessionModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    const modalName = document.getElementById('deleteSessionModalName');
+    const confirmBtn = document.getElementById('confirmDeleteSessionBtn');
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+    function deleteSession(container) {
+        const sessionId = container.dataset.sessionId;
+        const content = container.querySelector('.swipe-content');
+        content.classList.add('removing');
+
+        fetch('@Url.Action("Delete", "WorkoutSession")/' + sessionId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: '__RequestVerificationToken=' + encodeURIComponent(token)
+        }).then((response) => {
+            if (!response.ok) {
+                content.classList.remove('removing');
+                return;
+            }
+
+            setTimeout(() => {
+                container.remove();
+                if (!document.querySelector('#history-list .swipe-container')) {
+                    const historyList = document.getElementById('history-list');
+                    historyList?.remove();
+                    const empty = document.createElement('p');
+                    empty.className = 'text-muted';
+                    empty.innerHTML = 'No workouts yet. <a href="@Url.Action("Index", "WorkoutPlans")">Start one!</a>';
+                    document.body.appendChild(empty);
+                }
+            }, 300);
+        });
+    }
+
+    confirmBtn.addEventListener('click', () => {
+        modal.hide();
+        if (pendingContainer) deleteSession(pendingContainer);
+        pendingContainer = null;
+    });
+
+    document.querySelectorAll('.btn-delete-x').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const container = btn.closest('.swipe-container');
+            pendingContainer = container;
+            modalName.textContent = container.dataset.sessionName;
+            modal.show();
+        });
+    });
+
+    document.querySelectorAll('.swipe-container').forEach(container => {
+        const content = container.querySelector('.swipe-content');
+        let startX = 0;
+        let currentX = 0;
+        let swiping = false;
+
+        content.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            currentX = 0;
+            swiping = true;
+            content.classList.add('swiping');
+            container.classList.add('active-swipe');
+        }, { passive: true });
+
+        content.addEventListener('touchmove', (e) => {
+            if (!swiping) return;
+            currentX = e.touches[0].clientX - startX;
+            if (currentX > 0) currentX = 0;
+            content.style.transform = 'translateX(' + currentX + 'px)';
+        }, { passive: true });
+
+        content.addEventListener('touchend', () => {
+            swiping = false;
+            content.classList.remove('swiping');
+            container.classList.remove('active-swipe');
+            content.style.transform = '';
+
+            if (currentX < deleteThreshold) {
+                pendingContainer = container;
+                modalName.textContent = container.dataset.sessionName;
+                modal.show();
+            }
+        });
+    });
+});
+</script>
+
+@Html.AntiForgeryToken()

@@ -134,6 +134,28 @@ a.exercise-card:hover {
   touch-action: pan-y;
 }
 .swipe-content.swiping { transition: none; }
+.btn-delete-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  background: none;
+  border: none;
+  color: #adb5bd;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+}
+.btn-delete-x:hover {
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+.history-row-item {
+  position: relative;
+}
 .swipe-content.removing {
   transition: transform 0.3s ease, opacity 0.3s ease, max-height 0.3s ease;
   transform: translateX(-100%) !important;

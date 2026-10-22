@@ -498,8 +498,12 @@
         </div>
     </main>
 
+    <script src="~/js/screen-wake.js"></script>
     <script>
         (function () {
+            // Keep screen awake during active workout & rest periods
+            ScreenWake.enable('ActiveWorkout');
+
             const sessionExerciseId = @Model.Id;
             const currentSet = @(completedSets + 1);
             const totalSets = @totalSets;
