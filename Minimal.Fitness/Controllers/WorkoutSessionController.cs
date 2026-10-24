@@ -122,6 +122,22 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SkipExercise(int sessionExerciseId, int sessionId, int nextIndex)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var se = await db.SessionExercises
+            .Include(x => x.WorkoutSession)
+            .FirstOrDefaultAsync(x => x.Id == sessionExerciseId && x.WorkoutSession.UserId == userId);
+        if (se == null) return NotFound();
+
+        se.Skipped = true;
+        se.CompletedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = nextIndex });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int sessionId)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -146,7 +162,65 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
         if (session == null) return NotFound();
 
+        // Build per-exercise weight suggestions based on recent history
+        var planExercises = await db.WorkoutPlanExercises
+            .Where(pe => pe.WorkoutPlanId == session.WorkoutPlanId)
+            .ToDictionaryAsync(pe => pe.ExerciseId);
+
+        var exerciseIds = session.Exercises.Select(e => e.ExerciseId).ToList();
+
+        // Get the last 3 completed sessions for this plan (excluding the current one) per exercise
+        var recentRatings = await db.SessionExercises
+            .Where(se => se.WorkoutSession.UserId == userId
+                && se.WorkoutSession.WorkoutPlanId == session.WorkoutPlanId
+                && se.WorkoutSession.CompletedAtUtc != null
+                && exerciseIds.Contains(se.ExerciseId))
+            .OrderByDescending(se => se.WorkoutSession.StartedAtUtc)
+            .Select(se => new { se.ExerciseId, se.Difficulty, se.Skipped, se.WorkoutSession.StartedAtUtc })
+            .ToListAsync();
+
+        // suggestBump: +1 = suggest bump up, -1 = suggest bump down, 0 = no suggestion
+        var bumpSuggestions = new Dictionary<int, int>();
+        foreach (var exerciseId in exerciseIds)
+        {
+            var ratings = recentRatings
+                .Where(r => r.ExerciseId == exerciseId && !r.Skipped && r.Difficulty.HasValue)
+                .Take(3)
+                .Select(r => r.Difficulty!.Value)
+                .ToList();
+
+            if (ratings.Count >= 2 && ratings.Take(2).All(d => d == Difficulty.TooEasy || d == Difficulty.GotIt))
+                bumpSuggestions[exerciseId] = 1;
+            else if (ratings.Count >= 1 && ratings[0] == Difficulty.Struggled)
+                bumpSuggestions[exerciseId] = -1;
+            else
+                bumpSuggestions[exerciseId] = 0;
+        }
+
+        ViewBag.PlanExercises = planExercises;
+        ViewBag.BumpSuggestions = bumpSuggestions;
+
         return View(session);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> BumpWeight(int sessionId, int workoutPlanExerciseId, int direction)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var session = await db.WorkoutSessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+        if (session == null) return NotFound();
+
+        var pe = await db.WorkoutPlanExercises
+            .Include(x => x.WorkoutPlan)
+            .FirstOrDefaultAsync(x => x.Id == workoutPlanExerciseId && x.WorkoutPlanId == session.WorkoutPlanId);
+        if (pe == null) return NotFound();
+
+        var increment = direction > 0 ? 5m : -5m;
+        pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + increment);
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Summary), new { sessionId });
     }
 
     public async Task<IActionResult> History()

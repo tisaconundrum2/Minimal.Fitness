@@ -1,5 +1,6 @@
 @model Minimal.Fitness.Models.WorkoutSession
 @using Minimal.Fitness.Models.Enums
+@using Minimal.Fitness.Models
 @{
     ViewData["Title"] = "Workout Complete";
     var lastSetTime = Model.Exercises
@@ -10,6 +11,9 @@
     var endTime = new[] { lastSetTime, Model.CompletedAtUtc ?? lastSetTime }.Min();
     if (endTime < Model.StartedAtUtc) endTime = Model.StartedAtUtc;
     var duration = endTime - Model.StartedAtUtc;
+
+    var planExercises = (Dictionary<int, WorkoutPlanExercise>)ViewBag.PlanExercises;
+    var bumpSuggestions = (Dictionary<int, int>)ViewBag.BumpSuggestions;
 }
 
 <div class="text-center py-4">
@@ -23,29 +27,84 @@
             <th>Exercise</th>
             <th>Sets</th>
             <th>Feeling</th>
+            <th>Weight</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var se in Model.Exercises)
         {
-            <tr>
+            var hasPlanExercise = planExercises.TryGetValue(se.ExerciseId, out var pe);
+            var currentWeight = pe?.DefaultWeight;
+            var bump = bumpSuggestions.GetValueOrDefault(se.ExerciseId);
+            <tr style="@(se.Skipped ? "opacity:0.5" : "")">
                 <td>@se.Exercise.Name</td>
-                <td>@se.Sets.Count</td>
+                <td>@(se.Skipped ? "Skipped" : se.Sets.Count.ToString())</td>
                 <td>
-                    @switch (se.Difficulty)
+                    @if (se.Skipped)
                     {
-                        case Difficulty.TooEasy:
-                            <span class="badge" style="background:#b0efb9;color:#299e45">Easy</span>
-                            break;
-                        case Difficulty.GotIt:
-                            <span class="badge" style="background:#ffeda0;color:#ec9000">Made it</span>
-                            break;
-                        case Difficulty.Struggled:
-                            <span class="badge" style="background:#ffcaca;color:#e63236">Hard</span>
-                            break;
-                        default:
-                            <span class="text-muted">—</span>
-                            break;
+                        <span class="badge" style="background:#e5e7eb;color:#666">Skipped</span>
+                    }
+                    else
+                    {
+                        @switch (se.Difficulty)
+                        {
+                            case Difficulty.TooEasy:
+                                <span class="badge" style="background:#b0efb9;color:#299e45">Easy</span>
+                                break;
+                            case Difficulty.GotIt:
+                                <span class="badge" style="background:#ffeda0;color:#ec9000">Made it</span>
+                                break;
+                            case Difficulty.Struggled:
+                                <span class="badge" style="background:#ffcaca;color:#e63236">Hard</span>
+                                break;
+                            default:
+                                <span class="text-muted">—</span>
+                                break;
+                        }
+                    }
+                </td>
+                <td>
+                    @if (currentWeight.HasValue && currentWeight > 0)
+                    {
+                        <span>@currentWeight lbs</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>
+                    @if (hasPlanExercise && !se.Skipped)
+                    {
+                        <div class="d-flex gap-1 align-items-center">
+                            @if (bump >= 1)
+                            {
+                                <form asp-action="BumpWeight" method="post" class="d-inline">
+                                    <input type="hidden" name="sessionId" value="@Model.Id" />
+                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe!.Id" />
+                                    <input type="hidden" name="direction" value="1" />
+                                    <button type="submit" class="btn btn-sm btn-success" title="Bump up 5 lbs for next time">
+                                        ↑ +5 lbs
+                                    </button>
+                                </form>
+                            }
+                            @if (bump <= -1)
+                            {
+                                <form asp-action="BumpWeight" method="post" class="d-inline">
+                                    <input type="hidden" name="sessionId" value="@Model.Id" />
+                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe!.Id" />
+                                    <input type="hidden" name="direction" value="-1" />
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Bump down 5 lbs for next time">
+                                        ↓ -5 lbs
+                                    </button>
+                                </form>
+                            }
+                            @if (bump == 0)
+                            {
+                                <span class="text-muted small">—</span>
+                            }
+                        </div>
                     }
                 </td>
             </tr>
