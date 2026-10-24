@@ -312,6 +312,29 @@
             border-color: #111;
         }
 
+        /* Wake lock toggle */
+        .wake-lock-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
+        .wake-lock-toggle label {
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+        }
+        .wake-lock-toggle select {
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 2px 6px;
+            background: #fff;
+            color: #555;
+            cursor: pointer;
+        }
+
         @@media (prefers-reduced-motion: reduce) {
             .difficulty button { transition: none; }
         }
@@ -325,6 +348,15 @@
                 <div class="progress-fill" style="width: @((exerciseIndex * 100) / total)%"></div>
             </div>
             <div class="progress-label">@ViewBag.PlanName &mdash; @(exerciseIndex + 1) of @total</div>
+            <div class="wake-lock-toggle">
+                <label for="wake-mode">☀️ Screen on:</label>
+                <select id="wake-mode">
+                    <option value="always">Always</option>
+                    <option value="timers">Timers only</option>
+                    <option value="rest">Rest only</option>
+                    <option value="off">Off</option>
+                </select>
+            </div>
         </div>
 
         <!-- Animation -->
@@ -462,6 +494,16 @@
             </button>
         }
 
+        <!-- Skip exercise -->
+        <form asp-action="SkipExercise" method="post" style="text-align:center; margin-top:12px;">
+            <input type="hidden" name="sessionExerciseId" value="@Model.Id" />
+            <input type="hidden" name="sessionId" value="@sessionId" />
+            <input type="hidden" name="nextIndex" value="@(exerciseIndex + 1)" />
+            <button type="submit" style="background:none; border:none; color:#888; font-size:15px; font-weight:600; cursor:pointer; padding:8px 16px; text-decoration:underline;">
+                Skip exercise
+            </button>
+        </form>
+
         <!-- Difficulty (shown when all sets done) -->
         @if (completedSets >= totalSets)
         {
@@ -501,8 +543,36 @@
     <script src="~/js/screen-wake.js"></script>
     <script>
         (function () {
-            // Keep screen awake during active workout & rest periods
-            ScreenWake.enable('ActiveWorkout');
+            // Wake lock mode: always | timers | rest | off
+            const wakeModeSelect = document.getElementById('wake-mode');
+            const savedMode = localStorage.getItem('wakeLockMode') || 'always';
+            wakeModeSelect.value = savedMode;
+
+            function getWakeMode() { return wakeModeSelect.value; }
+
+            function applyWakeForContext(context) {
+                // context: 'idle' (between sets), 'timer' (exercise timer running), 'rest' (rest timer)
+                const mode = getWakeMode();
+                if (mode === 'off') { ScreenWake.disable(); return; }
+                if (mode === 'always') { ScreenWake.enable('ActiveWorkout'); return; }
+                if (mode === 'timers' && (context === 'timer' || context === 'rest')) {
+                    ScreenWake.enable('ActiveWorkout-' + context);
+                    return;
+                }
+                if (mode === 'rest' && context === 'rest') {
+                    ScreenWake.enable('ActiveWorkout-rest');
+                    return;
+                }
+                ScreenWake.disable();
+            }
+
+            // Apply on load
+            applyWakeForContext('idle');
+
+            wakeModeSelect.addEventListener('change', () => {
+                localStorage.setItem('wakeLockMode', wakeModeSelect.value);
+                applyWakeForContext('idle');
+            });
 
             const sessionExerciseId = @Model.Id;
             const currentSet = @(completedSets + 1);
@@ -563,9 +633,11 @@
                         clearInterval(timerInterval);
                         timerInterval = null;
                         startBtn.textContent = 'Start';
+                        applyWakeForContext('idle');
                         return;
                     }
                     startBtn.textContent = 'Pause';
+                    applyWakeForContext('timer');
                     timerInterval = setInterval(() => {
                         timerRemaining--;
                         timerDisplay.textContent = timerRemaining;
@@ -585,6 +657,7 @@
                     timerRemaining = timerDuration;
                     timerDisplay.textContent = timerRemaining;
                     if (startBtn) startBtn.textContent = 'Start';
+                    applyWakeForContext('idle');
                 });
             }
 
@@ -598,6 +671,7 @@
 
             function showRestTimer() {
                 restOverlay.classList.remove('hidden');
+                applyWakeForContext('rest');
                 let remaining = restDuration;
                 restDisplay.textContent = remaining;
                 restRingFill.style.strokeDashoffset = '0';
@@ -619,6 +693,7 @@
             function dismissRest() {
                 if (restInterval) clearInterval(restInterval);
                 restOverlay.classList.add('hidden');
+                applyWakeForContext('idle');
                 // Reload to show next set
                 window.location.href = '@Url.Action("Active", new { sessionId })' +
                     '&exerciseIndex=' + exerciseIndex;
