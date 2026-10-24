@@ -122,7 +122,7 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SkipExercise(int sessionExerciseId, int sessionId, int nextIndex)
+    public async Task<IActionResult> SkipExercise(int sessionExerciseId, int sessionId, int nextIndex, bool confirm = false)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var se = await db.SessionExercises
@@ -130,11 +130,41 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             .FirstOrDefaultAsync(x => x.Id == sessionExerciseId && x.WorkoutSession.UserId == userId);
         if (se == null) return NotFound();
 
+        if (!se.Deferred)
+        {
+            // First skip: move exercise to the end of the line
+            var maxSort = await db.SessionExercises
+                .Where(x => x.WorkoutSessionId == sessionId)
+                .MaxAsync(x => x.SortOrder);
+            se.SortOrder = maxSort + 1;
+            se.Deferred = true;
+            await db.SaveChangesAsync();
+
+            // Stay at the same index (the next exercise has shifted into this slot)
+            return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = nextIndex - 1 });
+        }
+
+        // Second skip: confirmed removal
+        if (!confirm)
+        {
+            // Should not happen (modal handles this client-side), but guard anyway
+            return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = nextIndex - 1 });
+        }
+
         se.Skipped = true;
         se.CompletedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
-        return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = nextIndex });
+        // Recalculate the correct index since this exercise is at the end
+        var exercises = await db.SessionExercises
+            .Where(x => x.WorkoutSessionId == sessionId)
+            .OrderBy(x => x.SortOrder)
+            .Select(x => x.Id)
+            .ToListAsync();
+        var currentIndex = exercises.IndexOf(sessionExerciseId);
+        var newNextIndex = currentIndex >= 0 ? currentIndex : exercises.Count;
+
+        return RedirectToAction(nameof(Active), new { sessionId, exerciseIndex = newNextIndex });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
