@@ -15,42 +15,47 @@
 @if (Model.Description != null) { <p class="text-muted">@Model.Description</p> }
 <p class="text-muted mb-4">Rest between sets: @Model.RestSeconds seconds</p>
 
-@foreach (var grp in Model.Exercises.GroupBy(e => e.Section))
+@foreach (var grp in Model.Exercises.OrderBy(e => e.SortOrder).GroupBy(e => e.Section))
 {
     <h4 class="mt-4">@grp.Key</h4>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Exercise</th>
-                <th>Sets</th>
-                <th>Target</th>
-                <th>Weight</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var pe in grp.OrderBy(e => e.SortOrder))
-            {
-                <tr>
-                    <td>
-                        @if (pe.Exercise.AnimationPath != null)
-                        {
-                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-1.png"
-                                 class="exercise-img-sm" style="width:36px;height:36px;margin-right:6px" alt="" />
-                        }
-                        <a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId">@pe.Exercise.Name</a>
-                    </td>
-                    <td>@pe.DefaultSets</td>
-                    <td>
-                        @if (pe.Exercise.TrackingType == TrackingType.Timer)
-                        { @($"{pe.DefaultDurationSeconds}s ⏱") }
-                        else
-                        { @($"{pe.DefaultReps} reps") }
-                    </td>
-                    <td>@(pe.DefaultWeight.HasValue ? $"{pe.DefaultWeight:F1} lbs" : "—")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        @foreach (var pe in grp.OrderBy(e => e.SortOrder))
+        {
+            <div class="col">
+                <a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId"
+                   class="card exercise-card h-100 text-decoration-none text-body">
+                    @if (pe.Exercise.AnimationPath != null)
+                    {
+                        <div class="card-img-top frame-anim p-2" style="height:180px">
+                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-1.png" alt="@pe.Exercise.Name" />
+                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-2.png" alt="" loading="lazy" />
+                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-3.png" alt="" loading="lazy" />
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@pe.Exercise.Name</h5>
+                        <span class="badge bg-secondary">@pe.Exercise.MuscleGroup</span>
+                        <span class="badge @(pe.Exercise.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
+                            @(pe.Exercise.TrackingType == TrackingType.Timer ? "⏱ Timer" : "Reps")
+                        </span>
+                        <div class="mt-2 small text-muted">
+                            <span>@pe.DefaultSets sets</span>
+                            <span class="mx-1">·</span>
+                            @if (pe.Exercise.TrackingType == TrackingType.Timer)
+                            { <span>@($"{pe.DefaultDurationSeconds}s ⏱")</span> }
+                            else
+                            { <span>@($"{pe.DefaultReps} reps")</span> }
+                            @if (pe.DefaultWeight.HasValue)
+                            {
+                                <span class="mx-1">·</span>
+                                <span>@($"{pe.DefaultWeight:F1} lbs")</span>
+                            }
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
 }
 
 @if (User.Identity?.IsAuthenticated == true)
