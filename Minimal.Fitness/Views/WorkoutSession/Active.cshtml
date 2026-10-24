@@ -77,7 +77,8 @@
         /* Animation area */
         .animation {
             width: 100%;
-            aspect-ratio: 1;
+            aspect-ratio: 4/3;
+            max-height: 240px;
             margin: 8px auto 0;
             background: #1a1a2e;
             border-radius: 20px;
@@ -145,31 +146,56 @@
             letter-spacing: 0.05em;
         }
 
-        /* Workout table */
-        .workout-table {
-            width: 100%;
-            margin-top: clamp(20px, 5svh, 40px);
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 16px;
+        /* Set indicator */
+        .set-indicator {
+            text-align: center;
+            margin-top: 20px;
         }
-        .workout-table th,
-        .workout-table td {
-            padding: 14px 8px;
-            border-bottom: 1px solid #e5e7eb;
-            white-space: nowrap;
+        .set-badge {
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 6px 18px;
+            letter-spacing: 0.03em;
         }
-        .workout-table th { font-weight: 700; }
-        .workout-table th:last-child,
-        .workout-table td:last-child { text-align: right; }
-        .workout-table th:nth-child(2),
-        .workout-table td:nth-child(2) { text-align: center; }
-
-        /* Set tracking row */
-        .set-row { cursor: pointer; }
-        .set-row.completed { opacity: 0.5; text-decoration: line-through; }
-        .set-row.active-set { background: #f0f7ff; font-weight: 600; }
-        .set-check { width: 20px; }
+        .set-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .set-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e0e0e0;
+        }
+        .set-dot.done { background: #111; }
+        .set-dot.active {
+            background: #111;
+            box-shadow: 0 0 0 3px #fff, 0 0 0 5px #111;
+        }
+        .set-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 16px;
+        }
+        .set-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .set-input-group label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
         /* Difficulty buttons */
         .difficulty {
@@ -299,12 +325,12 @@
 
         /* Reps/weight inputs */
         .inline-input {
-            width: 60px;
+            width: 80px;
             text-align: center;
             border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 6px;
-            font-size: 16px;
+            padding: 10px 6px;
+            font-size: 20px;
             font-weight: 600;
         }
         .inline-input:focus {
@@ -386,32 +412,23 @@
         }
         <div class="exercise-name">@Model.Exercise.Name</div>
 
+        <!-- Set indicator -->
+        <div class="set-indicator">
+            <span class="set-badge">Set @(completedSets + 1) of @totalSets</span>
+            <div class="set-dots">
+                @for (int s = 1; s <= totalSets; s++)
+                {
+                    var done = s <= completedSets;
+                    var isActive = s == completedSets + 1;
+                    <div class="set-dot @(done ? "done" : "") @(isActive ? "active" : "")"></div>
+                }
+            </div>
+        </div>
+
         @if (isTimer)
         {
             <!-- Timer mode -->
             <div id="timer-area">
-                <table class="workout-table" aria-label="Exercise target">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th>Set</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (int s = 1; s <= totalSets; s++)
-                        {
-                            var done = Model.Sets.Any(x => x.SetNumber == s);
-                            <tr class="set-row @(done ? "completed" : "") @(!done && !Model.Sets.Any(x => x.SetNumber == s) && s == completedSets + 1 ? "active-set" : "")"
-                                data-set="@s" data-done="@done.ToString().ToLower()">
-                                <td class="set-check">@(done ? "✓" : "")</td>
-                                <td>@s of @totalSets</td>
-                                <td style="text-align:right">@(pe?.DefaultDurationSeconds ?? 60)s</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-
                 @if (completedSets < totalSets)
                 {
                     <div class="timer-display" id="timer-display">@(pe?.DefaultDurationSeconds ?? 60)</div>
@@ -425,65 +442,25 @@
         else
         {
             <!-- Reps mode -->
-            <table class="workout-table" aria-label="Exercise target">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Sets</th>
-                        <th>Target</th>
-                        <th>Weight</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (int s = 1; s <= totalSets; s++)
+            @if (completedSets < totalSets)
+            {
+                var activeSet = completedSets + 1;
+                <div class="set-inputs">
+                    <div class="set-input-group">
+                        <label for="reps-@activeSet">Reps</label>
+                        <input type="number" class="inline-input" id="reps-@activeSet"
+                               value="@(pe?.DefaultReps ?? 10)" min="0" max="999" inputmode="numeric" />
+                    </div>
+                    @if (pe?.DefaultWeight.HasValue == true)
                     {
-                        var existingSet = Model.Sets.FirstOrDefault(x => x.SetNumber == s);
-                        var done = existingSet != null;
-                        var isActive = s == completedSets + 1 && !done;
-                        <tr class="set-row @(done ? "completed" : "") @(isActive ? "active-set" : "")"
-                            data-set="@s" data-done="@done.ToString().ToLower()">
-                            <td class="set-check">@(done ? "✓" : "")</td>
-                            <td>@s of @totalSets</td>
-                            <td>
-                                @if (isActive)
-                                {
-                                    <input type="number" class="inline-input" id="reps-@s"
-                                           value="@(pe?.DefaultReps ?? 10)" min="0" max="999" inputmode="numeric" />
-                                    <span>reps</span>
-                                }
-                                else if (done)
-                                {
-                                    @($"{existingSet!.Reps} reps")
-                                }
-                                else
-                                {
-                                    @($"{pe?.DefaultReps} reps")
-                                }
-                            </td>
-                            <td style="text-align:right">
-                                @if (isActive && pe?.DefaultWeight.HasValue == true)
-                                {
-                                    <input type="number" class="inline-input" id="weight-@s"
-                                           value="@pe.DefaultWeight" min="0" max="9999" step="2.5" inputmode="decimal" />
-                                    <span>lbs</span>
-                                }
-                                else if (done && existingSet!.Weight.HasValue)
-                                {
-                                    @($"{existingSet.Weight:F1} lbs")
-                                }
-                                else if (pe?.DefaultWeight.HasValue == true)
-                                {
-                                    @($"{pe.DefaultWeight:F1} lbs")
-                                }
-                                else
-                                {
-                                    <text>—</text>
-                                }
-                            </td>
-                        </tr>
+                        <div class="set-input-group">
+                            <label for="weight-@activeSet">Weight (lbs)</label>
+                            <input type="number" class="inline-input" id="weight-@activeSet"
+                                   value="@pe.DefaultWeight" min="0" max="9999" step="2.5" inputmode="decimal" />
+                        </div>
                     }
-                </tbody>
-            </table>
+                </div>
+            }
         }
 
         <!-- Done / complete set button -->
@@ -495,14 +472,30 @@
         }
 
         <!-- Skip exercise -->
-        <form asp-action="SkipExercise" method="post" style="text-align:center; margin-top:12px;">
+        <form asp-action="SkipExercise" method="post" id="skip-form" style="text-align:center; margin-top:12px;">
             <input type="hidden" name="sessionExerciseId" value="@Model.Id" />
             <input type="hidden" name="sessionId" value="@sessionId" />
             <input type="hidden" name="nextIndex" value="@(exerciseIndex + 1)" />
+            <input type="hidden" name="confirm" id="skip-confirm" value="false" />
             <button type="submit" style="background:none; border:none; color:#888; font-size:15px; font-weight:600; cursor:pointer; padding:8px 16px; text-decoration:underline;">
                 Skip exercise
             </button>
         </form>
+
+        @if (Model.Deferred)
+        {
+            <!-- Skip confirmation modal -->
+            <div id="skip-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+                <div style="background:#fff; border-radius:20px; padding:32px 28px; max-width:340px; width:90%; text-align:center;">
+                    <p style="font-size:17px; font-weight:600; margin:0 0 8px;">Skip this exercise?</p>
+                    <p style="font-size:15px; color:#555; margin:0 0 24px;">Are you sure you want to skip <strong>@Model.Exercise.Name</strong>? It will be removed from your workout.</p>
+                    <div style="display:flex; gap:12px; justify-content:center;">
+                        <button type="button" id="skip-modal-no" style="flex:1; padding:14px; border:2px solid #ddd; border-radius:12px; background:#fff; font-size:16px; font-weight:600; cursor:pointer;">No</button>
+                        <button type="button" id="skip-modal-yes" style="flex:1; padding:14px; border:none; border-radius:12px; background:#111; color:#fff; font-size:16px; font-weight:600; cursor:pointer;">Yes</button>
+                    </div>
+                </div>
+            </div>
+        }
 
         <!-- Difficulty (shown when all sets done) -->
         @if (completedSets >= totalSets)
@@ -726,6 +719,27 @@
                         osc2.stop(ctx.currentTime + 0.15);
                     }, 200);
                 } catch (e) { /* audio not available */ }
+            }
+
+            // Skip exercise: if deferred, show confirmation modal
+            const isDeferred = @(Model.Deferred ? "true" : "false");
+            const skipForm = document.getElementById('skip-form');
+            if (isDeferred && skipForm) {
+                const skipModal = document.getElementById('skip-modal');
+                const skipConfirmInput = document.getElementById('skip-confirm');
+                skipForm.addEventListener('submit', (e) => {
+                    if (skipConfirmInput.value !== 'true') {
+                        e.preventDefault();
+                        skipModal.style.display = 'flex';
+                    }
+                });
+                document.getElementById('skip-modal-no').addEventListener('click', () => {
+                    skipModal.style.display = 'none';
+                });
+                document.getElementById('skip-modal-yes').addEventListener('click', () => {
+                    skipConfirmInput.value = 'true';
+                    skipForm.submit();
+                });
             }
         })();
     </script>
