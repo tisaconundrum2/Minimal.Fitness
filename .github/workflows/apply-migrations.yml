@@ -1,0 +1,32 @@
+name: Apply EF Core Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Minimal.Fitness/Migrations/**'
+
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Minimal.Fitness
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Apply migrations
+        run: dotnet ef database update --connection "${{ secrets.PRODUCTION_CONNECTION_STRING }}"
+        env:
+          DOTNET_ENVIRONMENT: Production
