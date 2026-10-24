@@ -305,6 +305,9 @@ namespace Minimal.Fitness.Migrations
                     b.Property<DateTime?>("CompletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("Deferred")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Difficulty")
                         .HasColumnType("text");
 

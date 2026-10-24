@@ -10,6 +10,7 @@ public class SessionExercise
     public int SortOrder { get; set; }
     public Difficulty? Difficulty { get; set; }
     public bool Skipped { get; set; }
+    public bool Deferred { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
 
     public WorkoutSession WorkoutSession { get; set; } = null!;
