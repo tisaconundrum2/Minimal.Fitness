@@ -220,6 +220,74 @@ a.exercise-card:hover {
   white-space: nowrap;
 }
 
+/* Bottom navigation bar (mobile) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+  z-index: 1040;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #6c757d;
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav-item:hover,
+.bottom-nav-item:active {
+  color: #0d6efd;
+  text-decoration: none;
+}
+.bottom-nav-item svg {
+  flex-shrink: 0;
+}
+
+/* Floating action button – Start Workout */
+.fab-start {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #0d6efd;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(13,110,253,0.4);
+  z-index: 1045;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab-start:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(13,110,253,0.5);
+  color: #fff;
+}
+.fab-start:active {
+  transform: scale(0.95);
+}
+@media (max-width: 575.98px) {
+  .fab-start { bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
 /* Mobile-first workout layout */
 @media (max-width: 575.98px) {
   .container { padding-left: 12px; padding-right: 12px; }
@@ -227,4 +295,5 @@ a.exercise-card:hover {
   .difficulty-btn { font-size: 0.95rem; min-height: 52px; }
   #exercise-area h3 { font-size: 1.5rem; }
   .rest-timer-text { font-size: 2.5rem; }
+  body { padding-bottom: 72px; }
 }

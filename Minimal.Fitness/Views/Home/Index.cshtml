@@ -6,7 +6,7 @@
     <h1 class="display-4 fw-bold">Minimal Fitness</h1>
     <p class="lead text-muted">Track your workouts. Stay consistent.</p>
 
-    <div class="d-flex gap-3 justify-content-center mt-4">
+    <div class="d-none d-sm-flex gap-3 justify-content-center mt-4">
         <a asp-controller="WorkoutPlans" asp-action="Index" class="btn btn-primary btn-lg workout-btn">
             View Plans
         </a>
@@ -17,7 +17,7 @@
 
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <div class="mt-3">
+        <div class="mt-3 d-none d-sm-block">
             <a asp-controller="WorkoutSession" asp-action="History" class="btn btn-outline-secondary">
                 Workout History
             </a>
