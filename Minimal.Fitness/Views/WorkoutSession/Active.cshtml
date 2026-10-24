@@ -294,9 +294,13 @@
             transform: rotate(-90deg);
             transform-origin: center;
         }
-        .rest-skip {
+        .rest-buttons {
+            display: flex;
+            gap: 12px;
             margin-top: 32px;
-            padding: 12px 40px;
+        }
+        .rest-skip, .rest-less {
+            padding: 12px 28px;
             border: 2px solid rgba(255,255,255,0.3);
             border-radius: 12px;
             background: none;
@@ -304,6 +308,10 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+        }
+        .rest-less:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         /* Done button */
@@ -529,7 +537,10 @@
                         stroke-dasharray="565.49" stroke-dashoffset="0"/>
             </svg>
             <div class="rest-timer" id="rest-timer-display">@restSeconds</div>
-            <button type="button" class="rest-skip" id="rest-skip">Skip</button>
+            <div class="rest-buttons">
+                <button type="button" class="rest-less" id="rest-less">Less Rest</button>
+                <button type="button" class="rest-skip" id="rest-skip">Skip</button>
+            </div>
         </div>
     </main>
 
@@ -659,28 +670,50 @@
             const restDisplay = document.getElementById('rest-timer-display');
             const restRingFill = document.getElementById('rest-ring-fill');
             const restSkip = document.getElementById('rest-skip');
+            const restLess = document.getElementById('rest-less');
             const circumference = 2 * Math.PI * 90; // r=90
             let restInterval = null;
+            let adjustedRestDuration = restDuration;
+            let currentRestRemaining = 0;
 
             function showRestTimer() {
                 restOverlay.classList.remove('hidden');
                 applyWakeForContext('rest');
-                let remaining = restDuration;
-                restDisplay.textContent = remaining;
+                currentRestRemaining = adjustedRestDuration;
+                restDisplay.textContent = currentRestRemaining;
                 restRingFill.style.strokeDashoffset = '0';
+                updateLessBtn();
 
                 restInterval = setInterval(() => {
-                    remaining--;
-                    restDisplay.textContent = remaining;
-                    const offset = circumference * (1 - remaining / restDuration);
+                    currentRestRemaining--;
+                    restDisplay.textContent = currentRestRemaining;
+                    const offset = circumference * (1 - currentRestRemaining / adjustedRestDuration);
                     restRingFill.style.strokeDashoffset = offset;
 
-                    if (remaining <= 0) {
+                    if (currentRestRemaining <= 0) {
                         clearInterval(restInterval);
                         beep();
                         dismissRest();
                     }
                 }, 1000);
+            }
+
+            function updateLessBtn() {
+                if (restLess) restLess.disabled = adjustedRestDuration <= 15;
+            }
+
+            if (restLess) {
+                restLess.addEventListener('click', () => {
+                    const reduction = 15;
+                    adjustedRestDuration = Math.max(15, adjustedRestDuration - reduction);
+                    if (currentRestRemaining > adjustedRestDuration) {
+                        currentRestRemaining = adjustedRestDuration;
+                    }
+                    restDisplay.textContent = currentRestRemaining;
+                    const offset = circumference * (1 - currentRestRemaining / adjustedRestDuration);
+                    restRingFill.style.strokeDashoffset = offset;
+                    updateLessBtn();
+                });
             }
 
             function dismissRest() {
