@@ -311,6 +311,9 @@ namespace Minimal.Fitness.Migrations
                     b.Property<int>("ExerciseId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("Skipped")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
