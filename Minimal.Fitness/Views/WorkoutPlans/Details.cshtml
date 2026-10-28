@@ -58,7 +58,9 @@
                     @if (bumpSuggestions != null && bumpSuggestions.TryGetValue(pe.ExerciseId, out var bump) && bump != 0)
                     {
                         var isTimer = pe.Exercise.TrackingType == TrackingType.Timer;
-                        var label = isTimer ? "5 sec" : "5 lbs";
+                        var isBodyweight = !isTimer && pe.DefaultWeight.GetValueOrDefault() == 0;
+                        var repStep = (pe.DefaultReps ?? 10) >= 10 ? 5 : 1;
+                        var label = isTimer ? "5 sec" : isBodyweight ? $"{repStep} reps" : "5 lbs";
                         <div class="card-footer bg-transparent border-top-0 pt-0 pb-2 px-3">
                             @if (bump > 0)
                             {

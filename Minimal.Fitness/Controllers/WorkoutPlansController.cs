@@ -107,10 +107,16 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
             var inc = direction > 0 ? 5 : -5;
             pe.DefaultDurationSeconds = Math.Max(5, (pe.DefaultDurationSeconds ?? 30) + inc);
         }
-        else
+        else if (pe.DefaultWeight.GetValueOrDefault() > 0)
         {
             var inc = direction > 0 ? 5m : -5m;
-            pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + inc);
+            pe.DefaultWeight = Math.Max(0, pe.DefaultWeight!.Value + inc);
+        }
+        else
+        {
+            var reps = pe.DefaultReps ?? 10;
+            var inc = direction > 0 ? (reps >= 10 ? 5 : 1) : (reps > 10 ? -5 : -1);
+            pe.DefaultReps = Math.Max(1, reps + inc);
         }
         await db.SaveChangesAsync();
 
