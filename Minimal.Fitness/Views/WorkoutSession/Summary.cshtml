@@ -58,13 +58,23 @@
                     }
                 </td>
                 <td>
-                    @if (se.PlannedDurationSecondsSnapshot.HasValue && se.PlannedDurationSecondsSnapshot > 0)
-                    {
-                        <span>@se.PlannedDurationSecondsSnapshot sec</span>
+                    @{
+                        var actualWeight = se.Sets.Where(s => s.Weight.HasValue && s.Weight > 0).Select(s => s.Weight).FirstOrDefault();
+                        var actualDuration = se.Sets.Where(s => s.DurationSeconds.HasValue && s.DurationSeconds > 0).Select(s => s.DurationSeconds).FirstOrDefault();
+                        var loadWeight = actualWeight ?? se.PlannedWeightSnapshot;
+                        var loadDuration = actualDuration ?? se.PlannedDurationSecondsSnapshot;
                     }
-                    else if (se.PlannedWeightSnapshot.HasValue && se.PlannedWeightSnapshot > 0)
+                    @if (se.Exercise.TrackingType == TrackingType.Timer && loadDuration.HasValue && loadDuration > 0)
                     {
-                        <span>@se.PlannedWeightSnapshot lbs</span>
+                        <span>@loadDuration sec</span>
+                    }
+                    else if (loadWeight.HasValue && loadWeight > 0)
+                    {
+                        <span>@loadWeight lbs</span>
+                    }
+                    else if (loadDuration.HasValue && loadDuration > 0)
+                    {
+                        <span>@loadDuration sec</span>
                     }
                     else
                     {
