@@ -212,33 +212,15 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
 
         var exerciseIds = session.Exercises.Select(e => e.ExerciseId).ToList();
 
-        // Get recent completed session ratings for this plan per exercise.
-        var recentRatings = await db.SessionExercises
-            .Where(se => se.WorkoutSession.UserId == userId
-                && se.WorkoutSession.WorkoutPlanId == session.WorkoutPlanId
-                && se.WorkoutSession.CompletedAtUtc != null
-                && exerciseIds.Contains(se.ExerciseId))
-            .OrderByDescending(se => se.WorkoutSession.StartedAtUtc)
-            .Select(se => new { se.ExerciseId, se.Difficulty, se.Skipped, se.WorkoutSession.StartedAtUtc })
-            .ToListAsync();
-
-        // suggestBump: +1 = suggest bump up, -1 = suggest bump down, 0 = no suggestion
-        var bumpSuggestions = new Dictionary<int, int>();
-        foreach (var exerciseId in exerciseIds)
-        {
-            var ratings = recentRatings
-                .Where(r => r.ExerciseId == exerciseId && !r.Skipped && r.Difficulty.HasValue)
-                .Take(3)
-                .Select(r => r.Difficulty!.Value)
-                .ToList();
-
-            if (ratings.Count >= 2 && ratings.Take(2).All(d => d == Difficulty.TooEasy || d == Difficulty.GotIt))
-                bumpSuggestions[exerciseId] = 1;
-            else if (ratings.Count >= 1 && ratings[0] == Difficulty.Struggled)
-                bumpSuggestions[exerciseId] = -1;
-            else
-                bumpSuggestions[exerciseId] = 0;
-        }
+        // Easy → bump up, Hard → bump down, Made it → no change
+        var bumpSuggestions = session.Exercises
+            .Where(e => !e.Skipped && e.Difficulty.HasValue)
+            .ToDictionary(e => e.ExerciseId, e => e.Difficulty switch
+            {
+                Difficulty.TooEasy => 1,
+                Difficulty.Struggled => -1,
+                _ => 0
+            });
 
         var exerciseTrackingTypes = await db.Exercises
             .Where(e => exerciseIds.Contains(e.Id))
