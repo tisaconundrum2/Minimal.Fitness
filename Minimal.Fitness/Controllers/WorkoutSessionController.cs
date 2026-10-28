@@ -240,8 +240,13 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
                 bumpSuggestions[exerciseId] = 0;
         }
 
+        var exerciseTrackingTypes = await db.Exercises
+            .Where(e => exerciseIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, e => e.TrackingType);
+
         ViewBag.PlanExercises = planExercises;
         ViewBag.BumpSuggestions = bumpSuggestions;
+        ViewBag.TrackingTypes = exerciseTrackingTypes;
 
         return View(session);
     }
@@ -259,8 +264,19 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             .FirstOrDefaultAsync(x => x.Id == workoutPlanExerciseId && x.WorkoutPlanId == session.WorkoutPlanId);
         if (pe == null) return NotFound();
 
-        var increment = direction > 0 ? 5m : -5m;
-        pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + increment);
+        var exercise = await db.Exercises.FindAsync(pe.ExerciseId);
+        if (exercise == null) return NotFound();
+
+        if (exercise.TrackingType == TrackingType.Timer)
+        {
+            var durationIncrement = direction > 0 ? 5 : -5;
+            pe.DefaultDurationSeconds = Math.Max(5, (pe.DefaultDurationSeconds ?? 30) + durationIncrement);
+        }
+        else
+        {
+            var increment = direction > 0 ? 5m : -5m;
+            pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + increment);
+        }
         await db.SaveChangesAsync();
 
         return RedirectToAction(nameof(Summary), new { sessionId });
