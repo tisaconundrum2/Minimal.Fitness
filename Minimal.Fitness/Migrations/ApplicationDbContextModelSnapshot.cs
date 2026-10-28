@@ -310,6 +310,25 @@ namespace Minimal.Fitness.Migrations
                     b.Property<int>("ExerciseId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ExerciseNameSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PlannedDurationSecondsSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PlannedRepsSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PlannedSetsSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("PlannedWeightSnapshot")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("SectionSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<bool>("Skipped")
                         .HasColumnType("boolean");
 
@@ -439,6 +458,9 @@ namespace Minimal.Fitness.Migrations
 
                     b.Property<DateTime?>("CompletedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PlanNameSnapshot")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("StartedAtUtc")
                         .HasColumnType("timestamp with time zone");
