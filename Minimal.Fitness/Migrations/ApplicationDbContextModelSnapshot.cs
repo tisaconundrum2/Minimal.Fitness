@@ -410,6 +410,9 @@ namespace Minimal.Fitness.Migrations
                     b.Property<bool>("IsSeeded")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("LastBumpedSessionId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");

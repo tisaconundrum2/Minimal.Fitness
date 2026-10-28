@@ -10,6 +10,7 @@ public class WorkoutPlan
     public int RestSeconds { get; set; } = 75;
     public string? CreatedByUserId { get; set; }
     public bool IsSeeded { get; set; }
+    public int? LastBumpedSessionId { get; set; }
 
     public IdentityUser? CreatedByUser { get; set; }
     public ICollection<WorkoutPlanExercise> Exercises { get; set; } = [];

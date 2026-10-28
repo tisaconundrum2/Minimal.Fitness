@@ -284,8 +284,39 @@ a.exercise-card:hover {
 .fab-start:active {
   transform: scale(0.95);
 }
+
+/* Floating action button – Apply All Adjustments */
+.fab-bump {
+  position: fixed;
+  bottom: 24px;
+  left: 20px;
+  z-index: 1045;
+}
+.fab-bump button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #198754;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(25,135,84,0.4);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab-bump button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(25,135,84,0.5);
+}
+.fab-bump button:active {
+  transform: scale(0.95);
+}
+
 @media (max-width: 575.98px) {
   .fab-start { bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .fab-bump { bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
 
 /* Mobile-first workout layout */

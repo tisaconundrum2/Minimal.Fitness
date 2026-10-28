@@ -64,7 +64,7 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
                 .FirstOrDefaultAsync();
 
             var bumpSuggestions = new Dictionary<int, int>();
-            if (latestSession != 0)
+            if (latestSession != 0 && plan.LastBumpedSessionId != latestSession)
             {
                 var ratings = await db.SessionExercises
                     .Where(se => se.WorkoutSessionId == latestSession && !se.Skipped && se.Difficulty.HasValue)
@@ -102,6 +102,62 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
         if (!pe.WorkoutPlan.IsSeeded && pe.WorkoutPlan.CreatedByUserId != userId)
             return Forbid();
 
+        ApplyBump(pe, direction);
+
+        var latestSessionId = await db.WorkoutSessions
+            .Where(s => s.UserId == userId && s.WorkoutPlanId == planId && s.CompletedAtUtc != null)
+            .OrderByDescending(s => s.StartedAtUtc)
+            .Select(s => s.Id)
+            .FirstOrDefaultAsync();
+        if (latestSessionId != 0)
+            pe.WorkoutPlan.LastBumpedSessionId = latestSessionId;
+
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Details), new { id = planId });
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> BumpAll(int planId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        var plan = await db.WorkoutPlans.FindAsync(planId);
+        if (plan == null) return NotFound();
+        if (!plan.IsSeeded && plan.CreatedByUserId != userId) return Forbid();
+
+        var latestSessionId = await db.WorkoutSessions
+            .Where(s => s.UserId == userId && s.WorkoutPlanId == planId && s.CompletedAtUtc != null)
+            .OrderByDescending(s => s.StartedAtUtc)
+            .Select(s => s.Id)
+            .FirstOrDefaultAsync();
+        if (latestSessionId == 0) return RedirectToAction(nameof(Details), new { id = planId });
+
+        var ratings = await db.SessionExercises
+            .Where(se => se.WorkoutSessionId == latestSessionId && !se.Skipped && se.Difficulty.HasValue)
+            .Select(se => new { se.ExerciseId, se.Difficulty })
+            .ToListAsync();
+
+        var planExercises = await db.WorkoutPlanExercises
+            .Include(x => x.Exercise)
+            .Where(x => x.WorkoutPlanId == planId)
+            .ToListAsync();
+
+        foreach (var r in ratings)
+        {
+            var direction = r.Difficulty switch { Difficulty.TooEasy => 1, Difficulty.Struggled => -1, _ => 0 };
+            if (direction == 0) continue;
+            var pe = planExercises.FirstOrDefault(x => x.ExerciseId == r.ExerciseId);
+            if (pe != null) ApplyBump(pe, direction);
+        }
+
+        plan.LastBumpedSessionId = latestSessionId;
+        await db.SaveChangesAsync();
+        return RedirectToAction(nameof(Details), new { id = planId });
+    }
+
+    private static void ApplyBump(WorkoutPlanExercise pe, int direction)
+    {
         if (pe.Exercise.TrackingType == TrackingType.Timer)
         {
             var inc = direction > 0 ? 5 : -5;
@@ -118,9 +174,6 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
             var inc = direction > 0 ? (reps >= 10 ? 5 : 1) : (reps > 10 ? -5 : -1);
             pe.DefaultReps = Math.Max(1, reps + inc);
         }
-        await db.SaveChangesAsync();
-
-        return RedirectToAction(nameof(Details), new { id = planId });
     }
 
     [Authorize]
