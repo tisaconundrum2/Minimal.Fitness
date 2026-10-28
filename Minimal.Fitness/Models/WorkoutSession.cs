@@ -7,6 +7,7 @@ public class WorkoutSession
     public int Id { get; set; }
     public string UserId { get; set; } = string.Empty;
     public int WorkoutPlanId { get; set; }
+    public string? PlanNameSnapshot { get; set; }
     public DateTime StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
 

@@ -15,6 +15,7 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
     {
         var plan = await db.WorkoutPlans
             .Include(p => p.Exercises.OrderBy(e => e.SortOrder))
+                .ThenInclude(pe => pe.Exercise)
             .FirstOrDefaultAsync(p => p.Id == planId);
         if (plan == null) return NotFound();
 
@@ -23,6 +24,7 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
         {
             UserId = userId,
             WorkoutPlanId = planId,
+            PlanNameSnapshot = plan.Name,
             StartedAtUtc = DateTime.UtcNow
         };
         db.WorkoutSessions.Add(session);
@@ -34,6 +36,12 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             {
                 WorkoutSessionId = session.Id,
                 ExerciseId = pe.ExerciseId,
+                ExerciseNameSnapshot = pe.Exercise.Name,
+                SectionSnapshot = pe.Section,
+                PlannedSetsSnapshot = pe.DefaultSets,
+                PlannedRepsSnapshot = pe.DefaultReps,
+                PlannedWeightSnapshot = pe.DefaultWeight,
+                PlannedDurationSecondsSnapshot = pe.DefaultDurationSeconds,
                 SortOrder = pe.SortOrder
             });
         }
@@ -58,7 +66,10 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
 
         var exercises = session.Exercises.OrderBy(e => e.SortOrder).ToList();
         if (exerciseIndex < 0 || exerciseIndex >= exercises.Count)
+        {
+            await MarkCompletedIfFinishedAsync(session);
             return RedirectToAction(nameof(Summary), new { sessionId });
+        }
 
         var current = exercises[exerciseIndex];
         var planExercise = await db.WorkoutPlanExercises
@@ -72,7 +83,7 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
         ViewBag.TotalExercises = exercises.Count;
         ViewBag.PlanExercise = planExercise;
         ViewBag.DefaultRestSeconds = restSeconds;
-        ViewBag.PlanName = session.WorkoutPlan.Name;
+        ViewBag.PlanName = session.PlanNameSnapshot ?? session.WorkoutPlan.Name;
 
         return View(current);
     }
@@ -192,14 +203,16 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
             .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
         if (session == null) return NotFound();
 
+        await MarkCompletedIfFinishedAsync(session);
+
         // Build per-exercise weight suggestions based on recent history
         var planExercises = await db.WorkoutPlanExercises
-            .Where(pe => pe.WorkoutPlanId == session.WorkoutPlanId)
-            .ToDictionaryAsync(pe => pe.ExerciseId);
+                .Where(pe => pe.WorkoutPlanId == session.WorkoutPlanId)
+                .ToDictionaryAsync(pe => pe.ExerciseId);
 
         var exerciseIds = session.Exercises.Select(e => e.ExerciseId).ToList();
 
-        // Get the last 3 completed sessions for this plan (excluding the current one) per exercise
+        // Get recent completed session ratings for this plan per exercise.
         var recentRatings = await db.SessionExercises
             .Where(se => se.WorkoutSession.UserId == userId
                 && se.WorkoutSession.WorkoutPlanId == session.WorkoutPlanId
@@ -280,5 +293,18 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
         await db.SaveChangesAsync();
 
         return Ok();
+    }
+
+    private async Task MarkCompletedIfFinishedAsync(WorkoutSession session)
+    {
+        if (session.CompletedAtUtc.HasValue)
+            return;
+
+        var allExercisesFinished = session.Exercises.All(e => e.Skipped || e.Difficulty.HasValue);
+        if (!allExercisesFinished)
+            return;
+
+        session.CompletedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
     }
 }

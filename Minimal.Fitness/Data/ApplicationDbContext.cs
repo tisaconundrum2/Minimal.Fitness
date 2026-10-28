@@ -75,6 +75,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.Property(x => x.Difficulty).HasConversion<string>();
+            e.Property(x => x.PlannedWeightSnapshot).HasPrecision(8, 2);
             e.HasIndex(x => new { x.WorkoutSessionId, x.ExerciseId });
         });
 

@@ -14,6 +14,7 @@ else
     <div class="list-group" id="history-list">
         @foreach (var s in Model)
         {
+            var planName = s.PlanNameSnapshot ?? s.WorkoutPlan.Name;
             var lastSetTime = s.Exercises
                 .SelectMany(e => e.Sets)
                 .Select(x => x.CompletedAtUtc)
@@ -22,14 +23,14 @@ else
             var endTime = new[] { lastSetTime, s.CompletedAtUtc ?? lastSetTime }.Min();
             if (endTime < s.StartedAtUtc) endTime = s.StartedAtUtc;
             var duration = endTime - s.StartedAtUtc;
-            var displayName = $"{s.WorkoutPlan.Name} - {s.StartedAtUtc.ToLocalTime():MMM d, yyyy}";
+            var displayName = $"{planName} - {s.StartedAtUtc.ToLocalTime():MMM d, yyyy}";
             <div class="swipe-container" data-session-id="@s.Id" data-session-name="@displayName">
                 <div class="swipe-delete-bg">Delete</div>
                 <div class="swipe-content">
                     <a asp-action="Summary" asp-route-sessionId="@s.Id" class="list-group-item list-group-item-action history-row-item">
                         <button type="button" class="btn-delete-x" title="Delete workout">&times;</button>
                         <div class="d-flex justify-content-between pe-3">
-                            <strong>@s.WorkoutPlan.Name</strong>
+                            <strong>@planName</strong>
                             <small class="text-muted">@s.StartedAtUtc.ToLocalTime().ToString("MMM d, yyyy")</small>
                         </div>
                         <small class="text-muted">

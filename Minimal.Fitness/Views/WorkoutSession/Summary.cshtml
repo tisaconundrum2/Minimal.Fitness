@@ -18,7 +18,7 @@
 
 <div class="text-center py-4">
     <h2>Workout Complete! 💪</h2>
-    <p class="text-muted">@Model.WorkoutPlan.Name &mdash; @duration.TotalMinutes.ToString("F0") min</p>
+    <p class="text-muted">@(Model.PlanNameSnapshot ?? Model.WorkoutPlan.Name) &mdash; @duration.TotalMinutes.ToString("F0") min</p>
 </div>
 
 <table class="table">
@@ -35,10 +35,10 @@
         @foreach (var se in Model.Exercises)
         {
             var hasPlanExercise = planExercises.TryGetValue(se.ExerciseId, out var pe);
-            var currentWeight = pe?.DefaultWeight;
+            var currentWeight = se.PlannedWeightSnapshot ?? pe?.DefaultWeight;
             var bump = bumpSuggestions.GetValueOrDefault(se.ExerciseId);
             <tr style="@(se.Skipped ? "opacity:0.5" : "")">
-                <td>@se.Exercise.Name</td>
+                <td>@(se.ExerciseNameSnapshot ?? se.Exercise.Name)</td>
                 <td>@(se.Skipped ? "Skipped" : se.Sets.Count.ToString())</td>
                 <td>
                     @if (se.Skipped)
@@ -75,10 +75,10 @@
                     }
                 </td>
                 <td>
-                    @if (hasPlanExercise && !se.Skipped)
+                    @if (!se.Skipped)
                     {
                         <div class="d-flex gap-1 align-items-center">
-                            @if (bump >= 1)
+                            @if (hasPlanExercise && bump >= 1)
                             {
                                 <form asp-action="BumpWeight" method="post" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@Model.Id" />
@@ -89,7 +89,7 @@
                                     </button>
                                 </form>
                             }
-                            @if (bump <= -1)
+                            @if (hasPlanExercise && bump <= -1)
                             {
                                 <form asp-action="BumpWeight" method="post" class="d-inline">
                                     <input type="hidden" name="sessionId" value="@Model.Id" />
@@ -100,7 +100,7 @@
                                     </button>
                                 </form>
                             }
-                            @if (bump == 0)
+                            @if (!hasPlanExercise || bump == 0)
                             {
                                 <span class="text-muted small">—</span>
                             }

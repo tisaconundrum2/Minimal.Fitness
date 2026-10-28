@@ -7,6 +7,12 @@ public class SessionExercise
     public int Id { get; set; }
     public int WorkoutSessionId { get; set; }
     public int ExerciseId { get; set; }
+    public string? ExerciseNameSnapshot { get; set; }
+    public string? SectionSnapshot { get; set; }
+    public int? PlannedSetsSnapshot { get; set; }
+    public int? PlannedRepsSnapshot { get; set; }
+    public decimal? PlannedWeightSnapshot { get; set; }
+    public int? PlannedDurationSecondsSnapshot { get; set; }
     public int SortOrder { get; set; }
     public Difficulty? Difficulty { get; set; }
     public bool Skipped { get; set; }
