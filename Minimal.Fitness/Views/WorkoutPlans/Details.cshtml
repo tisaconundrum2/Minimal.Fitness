@@ -23,62 +23,64 @@
         @foreach (var pe in grp.OrderBy(e => e.SortOrder))
         {
             <div class="col">
-                <a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId"
-                   class="card exercise-card h-100 text-decoration-none text-body">
-                    @if (pe.Exercise.AnimationPath != null)
-                    {
-                        <div class="card-img-top frame-anim p-2" style="height:180px">
-                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-1.png" alt="@pe.Exercise.Name" />
-                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-2.png" alt="" loading="lazy" />
-                            <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-3.png" alt="" loading="lazy" />
-                        </div>
-                    }
-                    <div class="card-body">
-                        <h5 class="card-title">@pe.Exercise.Name</h5>
-                        <span class="badge bg-secondary">@pe.Exercise.MuscleGroup</span>
-                        <span class="badge @(pe.Exercise.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
-                            @(pe.Exercise.TrackingType == TrackingType.Timer ? "⏱ Timer" : "Reps")
-                        </span>
-                        <div class="mt-2 small text-muted">
-                            <span>@pe.DefaultSets sets</span>
-                            <span class="mx-1">·</span>
-                            @if (pe.Exercise.TrackingType == TrackingType.Timer)
-                            { <span>@($"{pe.DefaultDurationSeconds}s ⏱")</span> }
-                            else
-                            { <span>@($"{pe.DefaultReps} reps")</span> }
-                            @if (pe.DefaultWeight.HasValue)
-                            {
-                                <span class="mx-1">·</span>
-                                <span>@($"{pe.DefaultWeight:F1} lbs")</span>
-                            }
-                        </div>
-                        @if (bumpSuggestions != null && bumpSuggestions.TryGetValue(pe.ExerciseId, out var bump) && bump != 0)
+                <div class="card exercise-card h-100">
+                    <a asp-controller="Exercises" asp-action="Details" asp-route-id="@pe.ExerciseId"
+                       class="text-decoration-none text-body">
+                        @if (pe.Exercise.AnimationPath != null)
                         {
-                            var isTimer = pe.Exercise.TrackingType == TrackingType.Timer;
-                            var label = isTimer ? "5 sec" : "5 lbs";
-                            <div class="mt-2" onclick="event.stopPropagation(); event.preventDefault();">
-                                @if (bump > 0)
-                                {
-                                    <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
-                                        <input type="hidden" name="planId" value="@Model.Id" />
-                                        <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
-                                        <input type="hidden" name="direction" value="1" />
-                                        <button type="submit" class="btn btn-sm btn-success">↑ +@label</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
-                                        <input type="hidden" name="planId" value="@Model.Id" />
-                                        <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
-                                        <input type="hidden" name="direction" value="-1" />
-                                        <button type="submit" class="btn btn-sm btn-danger">↓ -@label</button>
-                                    </form>
-                                }
+                            <div class="card-img-top frame-anim p-2" style="height:180px">
+                                <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-1.png" alt="@pe.Exercise.Name" />
+                                <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-2.png" alt="" loading="lazy" />
+                                <img src="https://cdn.jsdelivr.net/npm/@@bryllim/workout-guide@@1.0.0/assets/@pe.Exercise.AnimationPath/frame-3.png" alt="" loading="lazy" />
                             </div>
                         }
-                    </div>
-                </a>
+                        <div class="card-body">
+                            <h5 class="card-title">@pe.Exercise.Name</h5>
+                            <span class="badge bg-secondary">@pe.Exercise.MuscleGroup</span>
+                            <span class="badge @(pe.Exercise.TrackingType == TrackingType.Timer ? "bg-info" : "bg-success")">
+                                @(pe.Exercise.TrackingType == TrackingType.Timer ? "⏱ Timer" : "Reps")
+                            </span>
+                            <div class="mt-2 small text-muted">
+                                <span>@pe.DefaultSets sets</span>
+                                <span class="mx-1">·</span>
+                                @if (pe.Exercise.TrackingType == TrackingType.Timer)
+                                { <span>@($"{pe.DefaultDurationSeconds}s ⏱")</span> }
+                                else
+                                { <span>@($"{pe.DefaultReps} reps")</span> }
+                                @if (pe.DefaultWeight.HasValue)
+                                {
+                                    <span class="mx-1">·</span>
+                                    <span>@($"{pe.DefaultWeight:F1} lbs")</span>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                    @if (bumpSuggestions != null && bumpSuggestions.TryGetValue(pe.ExerciseId, out var bump) && bump != 0)
+                    {
+                        var isTimer = pe.Exercise.TrackingType == TrackingType.Timer;
+                        var label = isTimer ? "5 sec" : "5 lbs";
+                        <div class="card-footer bg-transparent border-top-0 pt-0 pb-2 px-3">
+                            @if (bump > 0)
+                            {
+                                <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
+                                    <input type="hidden" name="planId" value="@Model.Id" />
+                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
+                                    <input type="hidden" name="direction" value="1" />
+                                    <button type="submit" class="btn btn-sm btn-success">↑ +@label</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
+                                    <input type="hidden" name="planId" value="@Model.Id" />
+                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
+                                    <input type="hidden" name="direction" value="-1" />
+                                    <button type="submit" class="btn btn-sm btn-danger">↓ -@label</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         }
     </div>
