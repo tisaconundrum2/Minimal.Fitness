@@ -2,6 +2,7 @@
 @using Minimal.Fitness.Models.Enums
 @{
     ViewData["Title"] = Model.Name;
+    var bumpSuggestions = ViewBag.BumpSuggestions as Dictionary<int, int>;
 }
 
 <nav aria-label="breadcrumb">
@@ -51,6 +52,31 @@
                                 <span>@($"{pe.DefaultWeight:F1} lbs")</span>
                             }
                         </div>
+                        @if (bumpSuggestions != null && bumpSuggestions.TryGetValue(pe.ExerciseId, out var bump) && bump != 0)
+                        {
+                            var isTimer = pe.Exercise.TrackingType == TrackingType.Timer;
+                            var label = isTimer ? "5 sec" : "5 lbs";
+                            <div class="mt-2" onclick="event.stopPropagation(); event.preventDefault();">
+                                @if (bump > 0)
+                                {
+                                    <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
+                                        <input type="hidden" name="planId" value="@Model.Id" />
+                                        <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
+                                        <input type="hidden" name="direction" value="1" />
+                                        <button type="submit" class="btn btn-sm btn-success">↑ +@label</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="WorkoutPlans" asp-action="BumpLoad" method="post" class="d-inline">
+                                        <input type="hidden" name="planId" value="@Model.Id" />
+                                        <input type="hidden" name="workoutPlanExerciseId" value="@pe.Id" />
+                                        <input type="hidden" name="direction" value="-1" />
+                                        <button type="submit" class="btn btn-sm btn-danger">↓ -@label</button>
+                                    </form>
+                                }
+                            </div>
+                        }
                     </div>
                 </a>
             </div>

@@ -1,6 +1,5 @@
 @model Minimal.Fitness.Models.WorkoutSession
 @using Minimal.Fitness.Models.Enums
-@using Minimal.Fitness.Models
 @{
     ViewData["Title"] = "Workout Complete";
     var lastSetTime = Model.Exercises
@@ -12,9 +11,6 @@
     if (endTime < Model.StartedAtUtc) endTime = Model.StartedAtUtc;
     var duration = endTime - Model.StartedAtUtc;
 
-    var planExercises = (Dictionary<int, WorkoutPlanExercise>)ViewBag.PlanExercises;
-    var bumpSuggestions = (Dictionary<int, int>)ViewBag.BumpSuggestions;
-    var trackingTypes = (Dictionary<int, TrackingType>)ViewBag.TrackingTypes;
 }
 
 <div class="text-center py-4">
@@ -29,15 +25,11 @@
             <th>Sets</th>
             <th>Feeling</th>
             <th>Load</th>
-            <th></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var se in Model.Exercises)
         {
-            var hasPlanExercise = planExercises.TryGetValue(se.ExerciseId, out var pe);
-            var currentWeight = se.PlannedWeightSnapshot;
-            var bump = bumpSuggestions.GetValueOrDefault(se.ExerciseId);
             <tr style="@(se.Skipped ? "opacity:0.5" : "")">
                 <td>@(se.ExerciseNameSnapshot ?? se.Exercise.Name)</td>
                 <td>@(se.Skipped ? "Skipped" : se.Sets.Count.ToString())</td>
@@ -66,58 +58,17 @@
                     }
                 </td>
                 <td>
-                    @{
-                        var isTimer = trackingTypes.TryGetValue(se.ExerciseId, out var tt) && tt == TrackingType.Timer;
-                        var currentDuration = se.PlannedDurationSecondsSnapshot;
-                    }
-                    @if (isTimer && currentDuration.HasValue && currentDuration > 0)
+                    @if (se.PlannedDurationSecondsSnapshot.HasValue && se.PlannedDurationSecondsSnapshot > 0)
                     {
-                        <span>@currentDuration sec</span>
+                        <span>@se.PlannedDurationSecondsSnapshot sec</span>
                     }
-                    else if (!isTimer && currentWeight.HasValue && currentWeight > 0)
+                    else if (se.PlannedWeightSnapshot.HasValue && se.PlannedWeightSnapshot > 0)
                     {
-                        <span>@currentWeight lbs</span>
+                        <span>@se.PlannedWeightSnapshot lbs</span>
                     }
                     else
                     {
                         <span class="text-muted">—</span>
-                    }
-                </td>
-                <td>
-                    @if (!se.Skipped)
-                    {
-                        <div class="d-flex gap-1 align-items-center">
-                            @{
-                                var bumpLabel = isTimer ? "5 sec" : "5 lbs";
-                                var bumpTitle = isTimer ? "duration" : "weight";
-                            }
-                            @if (hasPlanExercise && bump >= 1)
-                            {
-                                <form asp-action="BumpWeight" method="post" class="d-inline">
-                                    <input type="hidden" name="sessionId" value="@Model.Id" />
-                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe!.Id" />
-                                    <input type="hidden" name="direction" value="1" />
-                                    <button type="submit" class="btn btn-sm btn-success" title="Bump up @bumpTitle for next time">
-                                        ↑ +@bumpLabel
-                                    </button>
-                                </form>
-                            }
-                            @if (hasPlanExercise && bump <= -1)
-                            {
-                                <form asp-action="BumpWeight" method="post" class="d-inline">
-                                    <input type="hidden" name="sessionId" value="@Model.Id" />
-                                    <input type="hidden" name="workoutPlanExerciseId" value="@pe!.Id" />
-                                    <input type="hidden" name="direction" value="-1" />
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Bump down @bumpTitle for next time">
-                                        ↓ -@bumpLabel
-                                    </button>
-                                </form>
-                            }
-                            @if (!hasPlanExercise || bump == 0)
-                            {
-                                <span class="text-muted small">—</span>
-                            }
-                        </div>
                     }
                 </td>
             </tr>

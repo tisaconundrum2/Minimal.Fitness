@@ -205,63 +205,7 @@ public class WorkoutSessionController(ApplicationDbContext db) : Controller
 
         await MarkCompletedIfFinishedAsync(session);
 
-        // Build per-exercise weight suggestions based on recent history
-        var planExercises = await db.WorkoutPlanExercises
-                .Where(pe => pe.WorkoutPlanId == session.WorkoutPlanId)
-                .ToDictionaryAsync(pe => pe.ExerciseId);
-
-        var exerciseIds = session.Exercises.Select(e => e.ExerciseId).ToList();
-
-        // Easy → bump up, Hard → bump down, Made it → no change
-        var bumpSuggestions = session.Exercises
-            .Where(e => !e.Skipped && e.Difficulty.HasValue)
-            .ToDictionary(e => e.ExerciseId, e => e.Difficulty switch
-            {
-                Difficulty.TooEasy => 1,
-                Difficulty.Struggled => -1,
-                _ => 0
-            });
-
-        var exerciseTrackingTypes = await db.Exercises
-            .Where(e => exerciseIds.Contains(e.Id))
-            .ToDictionaryAsync(e => e.Id, e => e.TrackingType);
-
-        ViewBag.PlanExercises = planExercises;
-        ViewBag.BumpSuggestions = bumpSuggestions;
-        ViewBag.TrackingTypes = exerciseTrackingTypes;
-
         return View(session);
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> BumpWeight(int sessionId, int workoutPlanExerciseId, int direction)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var session = await db.WorkoutSessions
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
-        if (session == null) return NotFound();
-
-        var pe = await db.WorkoutPlanExercises
-            .Include(x => x.WorkoutPlan)
-            .FirstOrDefaultAsync(x => x.Id == workoutPlanExerciseId && x.WorkoutPlanId == session.WorkoutPlanId);
-        if (pe == null) return NotFound();
-
-        var exercise = await db.Exercises.FindAsync(pe.ExerciseId);
-        if (exercise == null) return NotFound();
-
-        if (exercise.TrackingType == TrackingType.Timer)
-        {
-            var durationIncrement = direction > 0 ? 5 : -5;
-            pe.DefaultDurationSeconds = Math.Max(5, (pe.DefaultDurationSeconds ?? 30) + durationIncrement);
-        }
-        else
-        {
-            var increment = direction > 0 ? 5m : -5m;
-            pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + increment);
-        }
-        await db.SaveChangesAsync();
-
-        return RedirectToAction(nameof(Summary), new { sessionId });
     }
 
     public async Task<IActionResult> History()

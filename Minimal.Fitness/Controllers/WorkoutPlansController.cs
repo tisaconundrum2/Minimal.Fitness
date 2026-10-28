@@ -52,7 +52,69 @@ public class WorkoutPlansController(ApplicationDbContext db) : Controller
         if (isAuthenticated && !plan.IsSeeded && plan.CreatedByUserId != userId)
             return Forbid();
 
+        if (isAuthenticated)
+        {
+            var exerciseIds = plan.Exercises.Select(e => e.ExerciseId).ToList();
+
+            // Most recent completed session's ratings for this plan
+            var latestSession = await db.WorkoutSessions
+                .Where(s => s.UserId == userId && s.WorkoutPlanId == plan.Id && s.CompletedAtUtc != null)
+                .OrderByDescending(s => s.StartedAtUtc)
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync();
+
+            var bumpSuggestions = new Dictionary<int, int>();
+            if (latestSession != 0)
+            {
+                var ratings = await db.SessionExercises
+                    .Where(se => se.WorkoutSessionId == latestSession && !se.Skipped && se.Difficulty.HasValue)
+                    .Select(se => new { se.ExerciseId, se.Difficulty })
+                    .ToListAsync();
+
+                foreach (var r in ratings)
+                {
+                    bumpSuggestions[r.ExerciseId] = r.Difficulty switch
+                    {
+                        Difficulty.TooEasy => 1,
+                        Difficulty.Struggled => -1,
+                        _ => 0
+                    };
+                }
+            }
+
+            ViewBag.BumpSuggestions = bumpSuggestions;
+        }
+
         return View(plan);
+    }
+
+    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    public async Task<IActionResult> BumpLoad(int planId, int workoutPlanExerciseId, int direction)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        var pe = await db.WorkoutPlanExercises
+            .Include(x => x.Exercise)
+            .Include(x => x.WorkoutPlan)
+            .FirstOrDefaultAsync(x => x.Id == workoutPlanExerciseId && x.WorkoutPlanId == planId);
+        if (pe == null) return NotFound();
+
+        if (!pe.WorkoutPlan.IsSeeded && pe.WorkoutPlan.CreatedByUserId != userId)
+            return Forbid();
+
+        if (pe.Exercise.TrackingType == TrackingType.Timer)
+        {
+            var inc = direction > 0 ? 5 : -5;
+            pe.DefaultDurationSeconds = Math.Max(5, (pe.DefaultDurationSeconds ?? 30) + inc);
+        }
+        else
+        {
+            var inc = direction > 0 ? 5m : -5m;
+            pe.DefaultWeight = Math.Max(0, (pe.DefaultWeight ?? 0) + inc);
+        }
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Details), new { id = planId });
     }
 
     [Authorize]
