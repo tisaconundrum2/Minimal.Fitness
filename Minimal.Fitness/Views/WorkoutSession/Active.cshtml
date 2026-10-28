@@ -1,7 +1,7 @@
 @model Minimal.Fitness.Models.SessionExercise
 @using Minimal.Fitness.Models.Enums
 @{
-    ViewData["Title"] = Model.Exercise.Name;
+    ViewData["Title"] = Model.ExerciseNameSnapshot ?? Model.Exercise.Name;
     Layout = null;
 
     var sessionId = (int)ViewBag.SessionId;
@@ -10,7 +10,11 @@
     var pe = (Minimal.Fitness.Models.WorkoutPlanExercise)ViewBag.PlanExercise;
     var restSeconds = (int)ViewBag.DefaultRestSeconds;
     var completedSets = Model.Sets.Count;
-    var totalSets = pe?.DefaultSets ?? 3;
+    var sectionName = Model.SectionSnapshot ?? pe?.Section;
+    var defaultReps = Model.PlannedRepsSnapshot ?? pe?.DefaultReps ?? 10;
+    var defaultWeight = Model.PlannedWeightSnapshot ?? pe?.DefaultWeight;
+    var defaultDurationSeconds = Model.PlannedDurationSecondsSnapshot ?? pe?.DefaultDurationSeconds ?? 60;
+    var totalSets = Model.PlannedSetsSnapshot ?? pe?.DefaultSets ?? 3;
     var isTimer = Model.Exercise.TrackingType == TrackingType.Timer;
     var isLastExercise = exerciseIndex == total - 1;
 }
@@ -20,7 +24,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>@Model.Exercise.Name - Workout</title>
+    <title>@(Model.ExerciseNameSnapshot ?? Model.Exercise.Name) - Workout</title>
     <meta name="theme-color" content="#111" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <style>
@@ -398,7 +402,7 @@
             var cdnBase = "https://cdn.jsdelivr.net/npm/@bryllim/workout-guide@1.0.0/assets";
             var slug = Model.Exercise.AnimationPath;
         }
-        <div class="animation" role="img" aria-label="@Model.Exercise.Name demonstration">
+        <div class="animation" role="img" aria-label="@(Model.ExerciseNameSnapshot ?? Model.Exercise.Name) demonstration">
             @if (slug != null)
             {
                 <div class="frame-swap">
@@ -416,9 +420,9 @@
         <!-- Exercise info -->
         @if (pe != null)
         {
-            <div class="exercise-section">@pe.Section</div>
+            <div class="exercise-section">@sectionName</div>
         }
-        <div class="exercise-name">@Model.Exercise.Name</div>
+        <div class="exercise-name">@(Model.ExerciseNameSnapshot ?? Model.Exercise.Name)</div>
 
         <!-- Set indicator -->
         <div class="set-indicator">
@@ -457,14 +461,14 @@
                     <div class="set-input-group">
                         <label for="reps-@activeSet">Reps</label>
                         <input type="number" class="inline-input" id="reps-@activeSet"
-                               value="@(pe?.DefaultReps ?? 10)" min="0" max="999" inputmode="numeric" />
+                               value="@defaultReps" min="0" max="999" inputmode="numeric" />
                     </div>
-                    @if (pe?.DefaultWeight.HasValue == true)
+                    @if (defaultWeight.HasValue)
                     {
                         <div class="set-input-group">
                             <label for="weight-@activeSet">Weight (lbs)</label>
                             <input type="number" class="inline-input" id="weight-@activeSet"
-                                   value="@pe.DefaultWeight" min="0" max="9999" step="2.5" inputmode="decimal" />
+                                   value="@defaultWeight" min="0" max="9999" step="2.5" inputmode="decimal" />
                         </div>
                     }
                 </div>
@@ -496,7 +500,7 @@
             <div id="skip-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
                 <div style="background:#fff; border-radius:20px; padding:32px 28px; max-width:340px; width:90%; text-align:center;">
                     <p style="font-size:17px; font-weight:600; margin:0 0 8px;">Skip this exercise?</p>
-                    <p style="font-size:15px; color:#555; margin:0 0 24px;">Are you sure you want to skip <strong>@Model.Exercise.Name</strong>? It will be removed from your workout.</p>
+                    <p style="font-size:15px; color:#555; margin:0 0 24px;">Are you sure you want to skip <strong>@(Model.ExerciseNameSnapshot ?? Model.Exercise.Name)</strong>? It will be removed from your workout.</p>
                     <div style="display:flex; gap:12px; justify-content:center;">
                         <button type="button" id="skip-modal-no" style="flex:1; padding:14px; border:2px solid #ddd; border-radius:12px; background:#fff; font-size:16px; font-weight:600; cursor:pointer;">No</button>
                         <button type="button" id="skip-modal-yes" style="flex:1; padding:14px; border:none; border-radius:12px; background:#111; color:#fff; font-size:16px; font-weight:600; cursor:pointer;">Yes</button>
@@ -582,7 +586,7 @@
             const currentSet = @(completedSets + 1);
             const totalSets = @totalSets;
             const isTimer = @(isTimer ? "true" : "false");
-            const timerDuration = @(pe?.DefaultDurationSeconds ?? 60);
+            const timerDuration = @defaultDurationSeconds;
             const restDuration = @restSeconds;
             const sessionId = @sessionId;
             const exerciseIndex = @exerciseIndex;
