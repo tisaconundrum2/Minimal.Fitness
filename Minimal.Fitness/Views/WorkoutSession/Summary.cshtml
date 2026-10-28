@@ -36,7 +36,7 @@
         @foreach (var se in Model.Exercises)
         {
             var hasPlanExercise = planExercises.TryGetValue(se.ExerciseId, out var pe);
-            var currentWeight = se.PlannedWeightSnapshot ?? pe?.DefaultWeight;
+            var currentWeight = se.PlannedWeightSnapshot;
             var bump = bumpSuggestions.GetValueOrDefault(se.ExerciseId);
             <tr style="@(se.Skipped ? "opacity:0.5" : "")">
                 <td>@(se.ExerciseNameSnapshot ?? se.Exercise.Name)</td>
@@ -68,7 +68,7 @@
                 <td>
                     @{
                         var isTimer = trackingTypes.TryGetValue(se.ExerciseId, out var tt) && tt == TrackingType.Timer;
-                        var currentDuration = se.PlannedDurationSecondsSnapshot ?? pe?.DefaultDurationSeconds;
+                        var currentDuration = se.PlannedDurationSecondsSnapshot;
                     }
                     @if (isTimer && currentDuration.HasValue && currentDuration > 0)
                     {
